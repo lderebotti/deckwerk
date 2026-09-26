@@ -221,6 +221,9 @@ export function createPresentWindow(
     width: target.bounds.width,
     height: target.bounds.height,
     backgroundColor: '#000000',
+    // Named from creation, like Speaker View, so window managers that place
+    // windows by title at map time (Wayland ignores x/y) can tell it apart.
+    title: 'Present',
     fullscreen: visible,
     autoHideMenuBar: true,
     show: false,
