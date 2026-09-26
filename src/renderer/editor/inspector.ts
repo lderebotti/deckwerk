@@ -47,7 +47,10 @@ import {
   wholeTextFormatState,
   applyTextRole,
   isBaselineFormat,
+  setTextBoxStyle,
+  textBoxStyle,
   type InlineTextFormat,
+  type TextBoxStyle,
 } from './textFormatting.js';
 
 interface TextPaintInfo {
@@ -1809,6 +1812,8 @@ export class Inspector {
           },
         ));
         wrap.append(typography.section, layout.section);
+        // A table draws its own cell borders; a frame round it would compete.
+        if (!el.table) wrap.appendChild(this.textBoxSection(el));
         return wrap;
       }
 
@@ -2121,6 +2126,42 @@ export class Inspector {
         }), { unit: 'px' }),
     );
     return border.section;
+  }
+
+  /** Fill, border, corners and inset on the text box itself -- a labelled box in one object. */
+  private textBoxSection(el: Extract<SlideElement, { type: 'text' }>): HTMLElement {
+    const box = optionSection('Box', 'text-box-options');
+    const current = textBoxStyle(el);
+    const update = (patch: Partial<TextBoxStyle>, label: string) =>
+      this.store.updateSelected((target) => {
+        if (target.type === 'text') setTextBoxStyle(target, patch);
+      }, { label });
+    const paint = document.createElement('div');
+    paint.className = 'compact-field-row';
+    paint.append(
+      colorField('Fill', current.fill, (value) => update({ fill: value }, 'Change box fill'),
+        { clear: { kind: 'none', label: 'No fill (transparent)' } }),
+      colorField('Border', current.borderColor, (value) => update({
+        borderColor: value,
+        // Picking a colour for an absent border is asking for one.
+        borderWidth: value ? current.borderWidth || 2 : 0,
+      }, 'Change box border'), { clear: { kind: 'none', label: 'No border' } }),
+    );
+    box.content.appendChild(paint);
+    const numbers = document.createElement('div');
+    numbers.className = 'field-grid';
+    const width = numberField('Border width', current.borderWidth, (value) =>
+      update({ borderWidth: Math.max(0, value) }, 'Change box border width'), { step: 0.5, unit: 'px' });
+    width.classList.add('text-box-border-width');
+    numbers.append(
+      width,
+      numberField('Radius', current.radius, (value) =>
+        update({ radius: Math.max(0, value) }, 'Change box corner radius'), { unit: 'px' }),
+      numberField('Padding', current.padding, (value) =>
+        update({ padding: Math.max(0, value) }, 'Change box padding'), { unit: 'px' }),
+    );
+    box.content.appendChild(numbers);
+    return box.section;
   }
 
   private mediaEffectsControls(): HTMLElement {

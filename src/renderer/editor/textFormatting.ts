@@ -362,3 +362,62 @@ export function applyTextRole(
   // bold word or a small unit after a figure survives a change of role. Only
   // the box's own copies of the type properties are the role's to replace.
 }
+
+/** The paint a text box's own frame carries: its fill, border, corners and inset. */
+export interface TextBoxStyle {
+  fill: string | null;
+  borderColor: string | null;
+  borderWidth: number;
+  radius: number;
+  padding: number;
+}
+
+/**
+ * Read a text box's frame from its inline style, whether it was written by the
+ * inspector as longhands or imported from HTML as a `border`/`background`
+ * shorthand. The browser's own CSS parser resolves the shorthands.
+ */
+export function textBoxStyle(element: TextElement): TextBoxStyle {
+  const probe = document.createElement('div').style;
+  for (const [property, value] of Object.entries(element.style)) probe.setProperty(property, value);
+  const transparent = (color: string) => !color || color === 'transparent' || /^rgba\(.*,\s*0\)$/.test(color);
+  const width = probe.borderTopStyle && probe.borderTopStyle !== 'none'
+    ? parseFloat(probe.borderTopWidth) || 0
+    : 0;
+  return {
+    fill: transparent(probe.backgroundColor) ? null : probe.backgroundColor,
+    borderColor: width > 0 && !transparent(probe.borderTopColor) ? probe.borderTopColor : null,
+    borderWidth: width,
+    radius: parseFloat(probe.borderTopLeftRadius) || 0,
+    padding: parseFloat(probe.paddingTop) || 0,
+  };
+}
+
+/**
+ * Change part of a text box's frame. Everything is written back as uniform
+ * longhands, replacing any imported shorthand for the same property so the
+ * two can never disagree about which one wins.
+ */
+export function setTextBoxStyle(element: TextElement, patch: Partial<TextBoxStyle>): void {
+  const next = { ...textBoxStyle(element), ...patch };
+  const style = { ...element.style };
+  for (const property of [
+    'background-color', 'border', 'border-style', 'border-width', 'border-color',
+    'border-radius', 'padding',
+  ]) delete style[property];
+  // ponytail: a gradient or image `background` is kept; only its colour layer is ours.
+  if (style.background !== undefined) {
+    const probe = document.createElement('div').style;
+    probe.setProperty('background', style.background);
+    if (!probe.backgroundImage || probe.backgroundImage === 'none') delete style.background;
+  }
+  if (next.fill) style['background-color'] = next.fill;
+  if (next.borderWidth > 0) {
+    style['border-style'] = 'solid';
+    style['border-width'] = `${next.borderWidth}px`;
+    style['border-color'] = next.borderColor ?? '#000000';
+  }
+  if (next.radius > 0) style['border-radius'] = `${next.radius}px`;
+  if (next.padding > 0) style.padding = `${next.padding}px`;
+  element.style = style;
+}
