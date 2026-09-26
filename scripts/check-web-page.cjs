@@ -18,12 +18,13 @@ app.whenReady().then(async () => {
     width, height, show: false, useContentSize: true,
     webPreferences: { offscreen: true, backgroundThrottling: false, sandbox: true, partition: 'web-check' },
   });
+  // Electron clamps a new window to the screen's work area; restore the full size.
+  win.setContentSize(width, height);
   const console_ = [];
   const remote = [];
   const failures = [];
-  win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
-    // 0 verbose, 1 info, 2 warning, 3 error
-    if (level >= 2) console_.push({ level: level === 3 ? 'error' : 'warning', message: String(message).slice(0, 300), line, source: String(sourceId).split('/').pop() });
+  win.webContents.on('console-message', ({ level, message, lineNumber, sourceId }) => {
+    if (level === 'warning' || level === 'error') console_.push({ level, message: String(message).slice(0, 300), line: lineNumber, source: String(sourceId).split('/').pop() });
   });
   win.webContents.on('did-fail-load', (_e, code, description, url) => {
     if (code !== -3) failures.push({ code, description, url: String(url).slice(0, 200) });

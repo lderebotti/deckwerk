@@ -55,6 +55,8 @@ app.whenReady().then(async () => {
         width: item.canvas.w, height: item.canvas.h, show: false, useContentSize: true,
         webPreferences: { offscreen: true, backgroundThrottling: false },
       });
+      // Electron clamps a new window to the screen's work area; restore the full size.
+      player.setContentSize(item.canvas.w, item.canvas.h);
       await player.loadFile(join(item.bundleDir, 'index.html'));
       for (let pageIndex = 0; pageIndex < item.pages.length; pageIndex++) {
         const expected = item.pages[pageIndex];
@@ -262,7 +264,7 @@ async function stableCapture(win) {
   for (let attempt = 0; attempt < 8; attempt++) {
     await win.webContents.executeJavaScript('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))');
     const image = await win.webContents.capturePage();
-    const bitmap = image.getBitmap();
+    const bitmap = image.toBitmap();
     if (previous && bitmap.equals(previous.bitmap)) return previous.image;
     previous = { image, bitmap };
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -277,8 +279,8 @@ function compare(reference, actual, rasterToleranceBoxes = [], canvas = null) {
     return { fraction: 1, differing: -1, total: -1,
       size: `${aSize.width}x${aSize.height} vs ${bSize.width}x${bSize.height}`, diff: reference };
   }
-  const a = reference.getBitmap();
-  const b = actual.getBitmap();
+  const a = reference.toBitmap();
+  const b = actual.toBitmap();
   const out = Buffer.alloc(a.length);
   const compared = comparePixelBuffers(a, b, aSize.width, aSize.height, {
     channelTolerance: CHANNEL_TOLERANCE,

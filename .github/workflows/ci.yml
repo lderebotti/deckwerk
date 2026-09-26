@@ -49,6 +49,8 @@ jobs:
       - run: npm ci
       - name: Configure Electron's SUID sandbox helper
         run: |
+          # Electron 42+ downloads its binary on first use, not on install.
+          node node_modules/electron/install.js
           sudo chown root:root node_modules/electron/dist/chrome-sandbox
           sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
       - name: Browser tests (advisory)
@@ -75,6 +77,8 @@ jobs:
       - run: npm ci
       - name: Configure Electron's SUID sandbox helper
         run: |
+          # Electron 42+ downloads its binary on first use, not on install.
+          node node_modules/electron/install.js
           sudo chown root:root node_modules/electron/dist/chrome-sandbox
           sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
       - name: Serial tests (advisory)

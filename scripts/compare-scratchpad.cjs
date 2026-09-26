@@ -72,7 +72,7 @@ async function comparePage(page) {
     slides.push({
       unitPixels: compareBitmaps(direct[index].capture, unit),
       scaledPixels: compareBitmaps(
-        { image: resized, bitmap: resized.getBitmap(), size: resized.getSize() },
+        { image: resized, bitmap: resized.toBitmap(), size: resized.getSize() },
         scaled,
       ),
       unitGeometry: compareProbes(direct[index].probes, unitProbes),
@@ -101,7 +101,7 @@ async function comparePage(page) {
     });
     contact.push({
       pixels: compareBitmaps(
-        { image: resized, bitmap: resized.getBitmap(), size: resized.getSize() },
+        { image: resized, bitmap: resized.toBitmap(), size: resized.getSize() },
         capture,
       ),
       geometry: compareProbes(direct[index].probes, contactProbes),
@@ -113,10 +113,13 @@ async function comparePage(page) {
 }
 
 function browserWindow(width, height) {
-  return new BrowserWindow({
+  const win = new BrowserWindow({
     width, height, show: false, useContentSize: true,
     webPreferences: { offscreen: true, backgroundThrottling: false },
   });
+  // Electron clamps a new window to the screen's work area; restore the full size.
+  win.setContentSize(width, height);
+  return win;
 }
 
 async function selectDirectSlide(win, index) {
@@ -212,7 +215,7 @@ async function captureStable(win, rect) {
   for (let attempt = 0; attempt < 6; attempt += 1) {
     await nextPaint(win);
     const image = await win.webContents.capturePage(captureRect);
-    const bitmap = image.getBitmap();
+    const bitmap = image.toBitmap();
     if (previous && bitmap.equals(previous.bitmap)) return previous;
     previous = { image, bitmap, size: image.getSize() };
     await new Promise((resolve) => setTimeout(resolve, 80));

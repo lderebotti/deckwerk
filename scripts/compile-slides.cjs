@@ -27,6 +27,8 @@ app.whenReady().then(async () => {
     useContentSize: true,
     webPreferences: { offscreen: true, backgroundThrottling: false },
   });
+  // Electron clamps a new window to the screen's work area; restore the full size.
+  win.setContentSize(job.canvas.w, job.canvas.h);
 
   try {
     const results = [];

@@ -22,6 +22,8 @@ async function render() {
     width: job.canvas.w, height: job.canvas.h, show: false, useContentSize: true,
     webPreferences: { offscreen: true, backgroundThrottling: false },
   });
+  // Electron clamps a new window to the screen's work area; restore the full size.
+  win.setContentSize(job.canvas.w, job.canvas.h);
   try {
     await win.loadURL(pathToFileURL(job.pagePath).href);
     await settle(win);

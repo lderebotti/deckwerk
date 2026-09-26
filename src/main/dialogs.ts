@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, isAbsolute, join } from 'node:path';
 import { dialog } from 'electron';
 import type {
   OpenDialogOptions,
@@ -38,14 +39,34 @@ function nextScriptedAnswer(kind: 'open' | 'save'): ScriptedAnswer | null {
   return next;
 }
 
+/**
+ * Since Electron 43 a panel without an absolute `defaultPath` opens in
+ * Downloads rather than where the user last was, so remember that here —
+ * for this run only.
+ */
+let lastDir: string | null = null;
+
+function inLastDir<T extends { defaultPath?: string }>(options: T): T {
+  if (!lastDir || (options.defaultPath && isAbsolute(options.defaultPath))) return options;
+  return { ...options, defaultPath: options.defaultPath ? join(lastDir, options.defaultPath) : lastDir };
+}
+
 export async function showOpenDialog(options: OpenDialogOptions): Promise<OpenDialogReturnValue> {
   const scripted = nextScriptedAnswer('open');
-  if (!scripted) return dialog.showOpenDialog(options);
+  if (!scripted) {
+    const result = await dialog.showOpenDialog(inLastDir(options));
+    if (!result.canceled && result.filePaths[0]) lastDir = dirname(result.filePaths[0]);
+    return result;
+  }
   return { canceled: scripted.canceled ?? false, filePaths: scripted.filePaths ?? [] };
 }
 
 export async function showSaveDialog(options: SaveDialogOptions): Promise<SaveDialogReturnValue> {
   const scripted = nextScriptedAnswer('save');
-  if (!scripted) return dialog.showSaveDialog(options);
+  if (!scripted) {
+    const result = await dialog.showSaveDialog(inLastDir(options));
+    if (!result.canceled && result.filePath) lastDir = dirname(result.filePath);
+    return result;
+  }
   return { canceled: scripted.canceled ?? false, filePath: scripted.filePath ?? '' };
 }

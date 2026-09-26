@@ -3,7 +3,7 @@ import { writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { userInfo } from 'node:os';
 import { basename, dirname, extname, join, resolve, sep } from 'node:path';
-import { BrowserWindow, app, clipboard, ipcMain, screen, shell } from 'electron';
+import { BrowserWindow, ClipboardItem, app, clipboard, ipcMain, nativeImage, screen, shell } from 'electron';
 import type { Display, IpcMainInvokeEvent, WebContents } from 'electron';
 import { parseDeck, type Deck } from '@shared/deck.js';
 import type { DeckHistoryDocument } from '@shared/deckHistory.js';
@@ -142,6 +142,9 @@ let collabOwner: DeckWindowState | null = null;
 let agentSessionReturn: Promise<void> | null = null;
 let quitting = false;
 const localAgents = new LocalAgentRegistry();
+/** The private deck-fragment format as a raw OS clipboard format, the same
+ * pasteboard entry Electron's retired `writeBuffer` produced. */
+const DECK_FRAGMENT_TYPE = `electron application/osclipboard;format="${CLIPBOARD_FORMAT}"`;
 let desktopAgentParticipantId: string | null = null;
 
 localAgents.subscribe((state, participantId) => {
@@ -586,7 +589,7 @@ app.whenReady().then(async () => {
   // app switcher, so set the matching high-resolution artwork explicitly.
   if (process.platform === 'darwin' && !app.isPackaged) {
     const developmentIcon = join(process.cwd(), 'resources', 'deckwerk-icon.png');
-    if (existsSync(developmentIcon)) app.dock.setIcon(developmentIcon);
+    if (existsSync(developmentIcon)) app.dock?.setIcon(developmentIcon);
   }
 
   installAssetProtocol();
@@ -850,7 +853,7 @@ function registerHandlers(): void {
   // Copy: serialise the fragment onto the OS pasteboard under a private
   // format, with absolute asset paths attached, so any instance of this app —
   // including a different process with a different deck open — can paste it.
-  ipcMain.handle(IPC.clipboardWrite, (event, request: ClipboardWriteRequest): void => {
+  ipcMain.handle(IPC.clipboardWrite, async (event, request: ClipboardWriteRequest): Promise<void> => {
     const assets: ClipboardPayload['assets'] = [];
     const source = ownerOf(event.sender)?.session;
     if (source) {
@@ -864,33 +867,38 @@ function registerHandlers(): void {
       }
     }
     const payload = { format: CLIPBOARD_FORMAT, version: 1, ...request, assets };
-    clipboard.writeBuffer(CLIPBOARD_FORMAT, Buffer.from(JSON.stringify(payload), 'utf8'));
+    await clipboard.write([new ClipboardItem({ [DECK_FRAGMENT_TYPE]: JSON.stringify(payload) })]);
   });
 
   // Paste: validate whatever is on the pasteboard, then re-import each
   // referenced asset into *this* deck. Import names files by content hash, so
   // pasting back into the source deck (or pasting twice) copies nothing.
   ipcMain.handle(IPC.clipboardRead, async (event): Promise<ClipboardReadResult | null> => {
-    const buf = clipboard.readBuffer(CLIPBOARD_FORMAT);
+    const items = await clipboard.read();
+    const read = async (type: string): Promise<Buffer | null> => {
+      const item = items.find((candidate) => candidate.types.includes(type));
+      return item ? Buffer.from(await (await item.getType(type) as Blob).arrayBuffer()) : null;
+    };
+    const buf = await read(DECK_FRAGMENT_TYPE);
     if (!buf || buf.length === 0) {
-      const html = clipboard.readHTML();
-      const text = clipboard.readText();
+      const html = (await read('text/html'))?.toString('utf8') ?? '';
+      const text = (await read('text/plain'))?.toString('utf8') ?? '';
       // A real HTML table wins over everything else: a spreadsheet copy puts
       // a bitmap of the range on the pasteboard *as well*, and an author who
       // copied cells wants cells.
       if (/<table\b/i.test(html)) {
         return { kind: 'external-html', html, text };
       }
-      const image = clipboard.readImage();
-      if (!image.isEmpty()) {
-        // Preserve the sharpest representation on Retina displays. NativeImage
-        // otherwise defaults PNG encoding to the 1x representation.
-        const scaleFactor = Math.max(1, ...image.getScaleFactors());
+      // The OS bitmap arrives as full-resolution PNG (JPEG from a few apps),
+      // so a Retina screenshot keeps every pixel.
+      const bitmap = (await read('image/png')) ?? (await read('image/jpeg'));
+      const image = bitmap ? nativeImage.createFromBuffer(bitmap) : null;
+      if (image && !image.isEmpty()) {
         const asset = await importImageBuffer(
           requireSession(event).dir,
-          image.toPNG({ scaleFactor }),
+          image.toPNG(),
           'Screenshot.png',
-          image.getSize(scaleFactor),
+          image.getSize(),
         );
         return { kind: 'external-image', asset };
       }
@@ -1273,7 +1281,8 @@ function registerHandlers(): void {
     // must not overwrite what they were about to paste, nor what a clipboard
     // test running beside this one just put there.
     if (process.env['DECKWERK_HEADLESS_TEST'] !== '1') {
-      clipboard.writeText(handoff?.command ?? joinUrl);
+      void clipboard.writeText(handoff?.command ?? joinUrl)
+        .catch((error: unknown) => console.error('Could not copy the join link:', error));
     }
     return handoff;
   };

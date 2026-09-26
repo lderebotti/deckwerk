@@ -6,6 +6,9 @@ const shared = resolve(__dirname, 'src/shared');
 export default defineConfig({
   main: {
     build: {
+      // electron-vite 3+ externalizes every dependency by default; keep
+      // bundling them so only the externals named below load from node_modules.
+      externalizeDeps: false,
       rollupOptions: {
         input: resolve(__dirname, 'src/main/index.ts'),
         // Bundling ws breaks its optional native bufferutil/utf-8-validate
@@ -17,6 +20,7 @@ export default defineConfig({
   },
   preload: {
     build: {
+      externalizeDeps: false,
       rollupOptions: { input: resolve(__dirname, 'src/preload/index.ts') },
     },
     resolve: { alias: { '@shared': shared } },

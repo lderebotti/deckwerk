@@ -35,6 +35,8 @@ app.whenReady().then(async () => {
     useContentSize: true,
     webPreferences: { offscreen: true, backgroundThrottling: false },
   });
+  // Electron clamps a new window to the screen's work area; restore the full size.
+  win.setContentSize(job.canvas.w, job.canvas.h);
 
   try {
     const results = [];
@@ -102,7 +104,7 @@ async function captureStable(win, rect) {
   for (let attempt = 0; attempt < 6; attempt++) {
     await win.webContents.executeJavaScript(NEXT_PAINT);
     const image = rect ? await win.webContents.capturePage(rect) : await win.webContents.capturePage();
-    const bitmap = image.getBitmap();
+    const bitmap = image.toBitmap();
     if (previous && bitmap.equals(previous.bitmap)) return previous;
     previous = { image, bitmap, size: image.getSize() };
     await new Promise((wait) => setTimeout(wait, 120));

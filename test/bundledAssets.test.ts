@@ -59,7 +59,7 @@ describe('assets the app needs at run time', () => {
     expect(builder.mac.icon).toBe('resources/deckwerk-icon.icns');
     const main = await readFile(join(process.cwd(), 'src/main/index.ts'), 'utf8');
     expect(main).toContain("app.setName('DeckWerk')");
-    expect(main).toContain("app.dock.setIcon(developmentIcon)");
+    expect(main).toContain("app.dock?.setIcon(developmentIcon)");
   });
 
   it('bundles Monaspace Krypton for the editor UI and app icon', async () => {

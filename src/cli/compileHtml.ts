@@ -213,6 +213,8 @@ async function renderHtmlDraftPngInCurrentElectron(
     useContentSize: true,
     webPreferences: { offscreen: true, backgroundThrottling: false },
   });
+  // Electron clamps a new window to the screen's work area; restore the full size.
+  win.setContentSize(canvas.w, canvas.h);
   try {
     await win.loadURL(pathToFileURL(pagePath).href);
     await win.webContents.executeJavaScript('document.fonts.ready.then(() => true)');
@@ -328,6 +330,8 @@ async function runPagesInCurrentElectron(
     useContentSize: true,
     webPreferences: { offscreen: true, backgroundThrottling: false },
   });
+  // Electron clamps a new window to the screen's work area; restore the full size.
+  win.setContentSize(canvas.w, canvas.h);
   try {
     const results: unknown[] = [];
     for (const page of pages) {

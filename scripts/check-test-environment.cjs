@@ -21,9 +21,8 @@ if (process.env.SKIP_ELECTRON_CHECK !== '1') {
 The Electron binary is missing, so every real-input browser suite would be
 silently skipped and this run would pass without testing the editor at all.
 
-Fix: reinstall dependencies so Electron downloads its binary:
-  npm ci
-(or: node node_modules/electron/install.js)
+Electron downloads its binary on first use, and that download failed. Retry:
+  node node_modules/electron/install.js
 
 To knowingly run only the pure unit tier without Electron, set:
   SKIP_ELECTRON_CHECK=1

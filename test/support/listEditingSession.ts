@@ -326,6 +326,9 @@ function buildSession(cdp: Cdp, port: number, deckId: string): ListEditingSessio
       if (offset < 0) throw new Error(`no text starting ${JSON.stringify(text)} to click`);
       await cdp.clickTextAtOffset(CONTENT, offset, `the paragraph holding ${text}`);
       await cdp.key(where === 'start' ? 'Home' : 'End', where === 'start' ? 36 : 35);
+      // Chromium dispatches `selectionchange` (which redraws the panel from
+      // the caret) as a later task; let a frame pass, as any real pause would.
+      await cdp.evaluate('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))');
     },
     outline() {
       return cdp.evaluate<string[]>(`(() => {
