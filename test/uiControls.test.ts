@@ -207,6 +207,52 @@ describe('shared editor controls', () => {
     expect(toolbar.classList.contains('toolbar-compact-file')).toBe(false);
   });
 
+  it('opens at once and loads a submenu flyout each time it opens', async () => {
+    const opened: string[] = [];
+    let recent = ['alpha'];
+    const picker = createToolbarPicker('File', [
+      {
+        label: 'Presentation',
+        options: [{
+          label: 'Open Recent…',
+          submenu: async () => recent.map((name) => ({
+            label: name, title: `/decks/${name}`, action: () => opened.push(name),
+          })),
+        }],
+      },
+      { label: 'Nothing here', action: () => opened.push('never'), disabled: true },
+    ]);
+    document.body.appendChild(picker);
+    const trigger = picker.querySelector<HTMLButtonElement>('.shape-menu-trigger')!;
+    const flyoutItems = () => [...picker.querySelectorAll<HTMLButtonElement>('.shape-menu-flyout .shape-menu-item')];
+
+    recent = ['bravo', 'alpha'];
+    trigger.click();
+    // The menu is there synchronously; only the flyout's list waits.
+    expect(picker.querySelector('.shape-menu')).not.toBeNull();
+    await new Promise((resolve) => setTimeout(resolve));
+    // Read at open, not at creation.
+    expect(flyoutItems().map((item) => item.title)).toEqual(['/decks/bravo', '/decks/alpha']);
+    const flyout = picker.querySelector<HTMLElement>('.shape-menu-flyout')!;
+    expect(flyout.hidden).toBe(true);
+    const openRecent = picker.querySelector<HTMLButtonElement>('[aria-haspopup="menu"].shape-menu-item')!;
+    openRecent.click();
+    expect(flyout.hidden).toBe(false);
+    expect(document.activeElement).toBe(flyoutItems()[0]);
+    expect(picker.querySelector<HTMLButtonElement>('.shape-menu > .shape-menu-item:disabled')?.textContent)
+      .toBe('Nothing here');
+    flyoutItems()[0].click();
+    expect(opened).toEqual(['bravo']);
+    expect(picker.querySelector('.shape-menu')).toBeNull();
+
+    // A picker whose whole list is loaded, like the welcome toolbar's Open Recent….
+    const loaded = createToolbarPicker('Open Recent…', async () => [{ label: 'alpha', action: () => {} }]);
+    document.body.appendChild(loaded);
+    loaded.querySelector<HTMLButtonElement>('.shape-menu-trigger')!.click();
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(loaded.querySelector('.shape-menu-item')?.textContent).toBe('alpha');
+  });
+
   it('consolidates deck saves and exports under Save As', () => {
     const actions: string[] = [];
     const picker = createToolbarPicker('Save As…', [

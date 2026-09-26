@@ -38,6 +38,7 @@ import type {
   WebExportRequest,
   PresentOptions,
   RasterSaveRequest,
+  RecentDeck,
   RasterResult,
   RasterTarget,
   TrimRequest,
@@ -70,6 +71,7 @@ import { showOpenDialog, showSaveDialog } from './dialogs.js';
 import { importKeynote } from './keynoteImport.js';
 import { importPowerPoint } from './pptxImport.js';
 import { loadDeckHistory, saveDeckHistory } from './deckHistoryStore.js';
+import { recentDecks, rememberRecentDeck } from './recentDecks.js';
 import { serializeSpeakerNotes, SPEAKER_NOTES_FILE } from '@shared/speakerNotes.js';
 import { HTML_EDIT_DIR, isAuthoringFileName, readSettledFile, writeHtmlScope } from './htmlAuthoring.js';
 import { AGENT_GUIDE_FILE, defaultLauncherPath, writeAgentGuide } from './agentGuide.js';
@@ -307,9 +309,14 @@ function endBackgroundAgentSession(): Promise<void> {
   return agentSessionReturn;
 }
 
+const recentDecksFile = (): string => join(app.getPath('userData'), 'recent-decks.json');
+
 /** Give a window a document, and tell it which deck its assets now come from. */
 function setSession(state: DeckWindowState, dir: string, deck: Deck): DeckSession {
   const session: DeckSession = { dir, deck };
+  // Every way a deck opens (new, open, recent, import, Save As, the command
+  // line) lands here, so this is the one place that feeds "Open Recent".
+  void rememberRecentDeck(recentDecksFile(), dir);
   state.session = session;
   state.themeCss = null;
   state.lastSavedDeckJson = null;
@@ -710,9 +717,14 @@ function registerHandlers(): void {
 
   ipcMain.handle(
     IPC.deckOpenPath,
-    async (event, dir: string): Promise<DeckSession | null> =>
-      openDeckForRequester(requireOwner(event), dir, await loadDeck(dir), event),
+    async (event, dir: string, operationId?: string): Promise<DeckSession | null> => {
+      reportOperation(event, operationId, `Reading ${basename(dir)}/deck.json`);
+      const deck = await loadDeck(dir);
+      reportOperation(event, operationId, 'Preparing deck files', 0.4);
+      return openDeckForRequester(requireOwner(event), dir, deck, event);
+    },
   );
+  ipcMain.handle(IPC.deckRecent, (): Promise<RecentDeck[]> => recentDecks(recentDecksFile()));
 
   ipcMain.handle(IPC.deckSave, async (event, dir: string, deck: Deck): Promise<void> => {
     const state = requireOwner(event);

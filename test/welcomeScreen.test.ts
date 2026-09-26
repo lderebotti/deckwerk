@@ -56,6 +56,27 @@ describe('no-deck welcome screen', () => {
     ]);
   });
 
+  it('lists recent decks under the choices and opens the one clicked', async () => {
+    const openRecentPresentation = vi.fn();
+    const screen = new WelcomeScreen(document.getElementById('canvas')!, {
+      newPresentation: vi.fn(), openPresentation: vi.fn(), importKeynote: vi.fn(), importPowerPoint: vi.fn(),
+      recentPresentations: async () => [{ dir: '/talks/alpha', name: 'alpha' }, { dir: '/talks/bravo', name: 'bravo' }],
+      openRecentPresentation,
+    });
+    await vi.waitFor(() => expect(screen.element.querySelector('.welcome-recent')).not.toBeNull());
+    const items = [...screen.element.querySelectorAll<HTMLButtonElement>('.welcome-recent-item')];
+    expect(items.map((item) => item.textContent)).toEqual(['alpha/talks/alpha', 'bravo/talks/bravo']);
+    items[1].click();
+    expect(openRecentPresentation).toHaveBeenCalledWith('/talks/bravo');
+
+    const empty = new WelcomeScreen(document.createElement('div'), {
+      newPresentation: vi.fn(), openPresentation: vi.fn(), importKeynote: vi.fn(), importPowerPoint: vi.fn(),
+      recentPresentations: async () => [], openRecentPresentation,
+    });
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(empty.element.querySelector('.welcome-recent')).toBeNull();
+  });
+
   it('routes every choice and leaves welcome mode only after a deck is adopted', () => {
     const actions = {
       newPresentation: vi.fn(), openPresentation: vi.fn(), importKeynote: vi.fn(), importPowerPoint: vi.fn(),

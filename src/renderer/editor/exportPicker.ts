@@ -1,14 +1,26 @@
 export interface ToolbarPickerOption {
   label: string;
   action: () => void;
+  /** Tooltip, e.g. the full path behind a short name. */
+  title?: string;
+  disabled?: boolean;
+}
+
+/**
+ * An item that opens a flyout beside the menu, like File → Open Recent. Its
+ * options load each time the menu opens, so the menu itself opens at once.
+ */
+export interface ToolbarPickerSubmenu {
+  label: string;
+  submenu: () => Promise<ToolbarPickerOption[]>;
 }
 
 export interface ToolbarPickerSection {
   label: string;
-  options: ToolbarPickerOption[];
+  options: Array<ToolbarPickerOption | ToolbarPickerSubmenu>;
 }
 
-export type ToolbarPickerEntry = ToolbarPickerOption | ToolbarPickerSection;
+export type ToolbarPickerEntry = ToolbarPickerOption | ToolbarPickerSection | ToolbarPickerSubmenu;
 
 export interface ToolbarSplitButtonConfig {
   deckOnly?: boolean;
@@ -16,14 +28,21 @@ export interface ToolbarSplitButtonConfig {
   variant?: 'primary';
 }
 
+const CHEVRON_RIGHT = '<svg class="shape-menu-chevron" viewBox="0 0 10 10" width="9" height="9" aria-hidden="true">' +
+  '<path d="M3.5 2l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" ' +
+  'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 /**
  * A compact toolbar dropdown. It deliberately uses the existing Shape menu
  * classes so grouped file actions have the toolbar's exact density, borders,
  * focus treatment, and placement.
+ *
+ * `entries` may be a function, read each time the menu opens, for lists that
+ * change behind the menu's back (recent decks).
  */
 export function createToolbarPicker(
   label: string,
-  entries: ToolbarPickerEntry[],
+  entries: ToolbarPickerEntry[] | (() => Promise<ToolbarPickerEntry[]>),
   config: { deckOnly?: boolean; escapeClipping?: boolean } = {},
 ): HTMLElement {
   const wrap = document.createElement('span');
@@ -74,7 +93,12 @@ export function createToolbarPicker(
   const keys = (event: KeyboardEvent): void => {
     if (event.key === 'Escape') close();
   };
-  const open = (): void => {
+  let opening = 0;
+  const open = async (): Promise<void> => {
+    // A second click while the entries load wins; the first open is dropped.
+    const request = ++opening;
+    const list = typeof entries === 'function' ? await entries() : entries;
+    if (request !== opening || menu) return;
     menu = document.createElement('div');
     menu.className = `shape-menu${config.escapeClipping ? ' shape-menu-fixed' : ''}`;
     menu.setAttribute('role', 'menu');
@@ -84,6 +108,8 @@ export function createToolbarPicker(
       item.className = 'shape-menu-item';
       item.setAttribute('role', 'menuitem');
       item.textContent = option.label;
+      if (option.title) item.title = option.title;
+      item.disabled = option.disabled ?? false;
       item.addEventListener('click', () => {
         close();
         trigger.blur();
@@ -91,7 +117,45 @@ export function createToolbarPicker(
       });
       parent.appendChild(item);
     };
-    for (const entry of entries) {
+    const appendSubmenu = (entry: ToolbarPickerSubmenu, parent: HTMLElement): void => {
+      const holder = document.createElement('div');
+      holder.className = 'shape-menu-submenu';
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'shape-menu-item';
+      item.setAttribute('role', 'menuitem');
+      item.setAttribute('aria-haspopup', 'menu');
+      item.setAttribute('aria-expanded', 'false');
+      const text = document.createElement('span');
+      text.textContent = entry.label;
+      item.append(text);
+      item.insertAdjacentHTML('beforeend', CHEVRON_RIGHT);
+      const flyout = document.createElement('div');
+      flyout.className = 'shape-menu shape-menu-flyout';
+      flyout.setAttribute('role', 'menu');
+      flyout.hidden = true;
+      void entry.submenu().then((options) => {
+        for (const option of options) appendOption(option, flyout);
+      });
+      const show = (on: boolean): void => {
+        flyout.hidden = !on;
+        item.setAttribute('aria-expanded', String(on));
+      };
+      holder.addEventListener('pointerenter', () => show(true));
+      holder.addEventListener('pointerleave', () => show(false));
+      // Click or Enter opens it and moves focus in, for keyboard users.
+      item.addEventListener('click', () => {
+        show(true);
+        flyout.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+      });
+      holder.append(item, flyout);
+      parent.appendChild(holder);
+    };
+    for (const entry of list) {
+      if ('submenu' in entry) {
+        appendSubmenu(entry, menu);
+        continue;
+      }
       if (!('options' in entry)) {
         appendOption(entry, menu);
         continue;
@@ -104,7 +168,10 @@ export function createToolbarPicker(
       heading.className = 'shape-menu-section-label';
       heading.textContent = entry.label;
       section.appendChild(heading);
-      for (const option of entry.options) appendOption(option, section);
+      for (const option of entry.options) {
+        if ('submenu' in option) appendSubmenu(option, section);
+        else appendOption(option, section);
+      }
       menu.appendChild(section);
     }
     wrap.appendChild(menu);
@@ -116,7 +183,7 @@ export function createToolbarPicker(
     window.addEventListener('scroll', place, true);
     menu.querySelector<HTMLButtonElement>('button')?.focus();
   };
-  trigger.addEventListener('click', () => (menu ? close() : open()));
+  trigger.addEventListener('click', () => (menu ? close() : void open()));
   wrap.appendChild(trigger);
   return wrap;
 }

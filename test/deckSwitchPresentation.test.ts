@@ -441,6 +441,13 @@ describe.skipIf(!runnable)('presenting with several presentations open', () => {
     expect(presented.marker).toBe(null);
   }, 90_000);
 
+  it('remembers every deck opened, however it opened, most recent first', async () => {
+    // Command line, Open, Import and New so far: all four feed Open Recent.
+    const alpha = await editorShowing(alphaDir, 'the first deck is not open');
+    const recent = await alpha.cdp.evaluate<Array<{ dir: string }>>('window.api.recentDecks()');
+    expect(recent.map((deck) => deck.dir)).toEqual([deltaDir, charlieDir, bravoDir, alphaDir]);
+  }, 30_000);
+
   it("keeps one window's outside edits out of another window's projector", async () => {
     // An outside writer — an agent, a git checkout — keeps changing one open
     // deck. Its window must follow, and no other window's may.
@@ -615,6 +622,30 @@ describe.skipIf(!runnable)('presenting with several presentations open', () => {
       );
     }
   }, 90_000);
+
+  it('reopens a deck from File → Open Recent', async () => {
+    // Save As just moved bravo's window to the copy, so bravo itself is
+    // recent but open nowhere.
+    const alpha = await editorShowing(alphaDir, 'the first deck is not open');
+    await alpha.cdp.clickByText('.shape-menu-trigger', 'File', 'File');
+    await alpha.cdp.clickByText('.shape-menu-item', 'Open Recent…', 'File → Open Recent…');
+    const listed = await eventually(
+      async () => alpha.cdp.evaluate<string[]>(
+        "[...document.querySelectorAll('.shape-menu-flyout .shape-menu-item')].map((item) => item.title)",
+      ),
+      'the Open Recent flyout never filled',
+      (titles) => titles.length > 0,
+    );
+    // Most recent first, and never the window's own deck.
+    expect(listed).toEqual([join(workDir, 'bravo-copy'), deltaDir, charlieDir, bravoDir]);
+    await alpha.cdp.clickByText('.shape-menu-flyout .shape-menu-item', 'bravo', 'File → Open Recent… → bravo');
+
+    await editorShowing(bravoDir, 'Open Recent did not reopen the deck');
+    // The asking window keeps its own document (its marker was rewritten by
+    // the outside-edit test above, so ask for the folder instead).
+    expect(await alpha.cdp.evaluate<string | null>('window.api.getDeck().then((session) => session?.dir ?? null)'))
+      .toBe(alphaDir);
+  }, 60_000);
 });
 
 describe.skipIf(runnable)('presenting with several presentations open (skipped)', () => {

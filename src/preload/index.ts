@@ -18,6 +18,7 @@ import type {
   DeckSessionSnapshot,
   DeckHistorySession,
   ImportedAsset,
+  RecentDeck,
   PresentationImportResult,
   MediaInfo,
   OperationProgress,
@@ -72,8 +73,10 @@ const api = {
     ipcRenderer.invoke(IPC.deckOpen, operationId),
   getDeck: (): Promise<DeckSession | null> => ipcRenderer.invoke(IPC.deckGet),
   /** Null when the deck went to a window of its own instead of this one. */
-  openDeckPath: (dir: string): Promise<DeckSession | null> =>
-    ipcRenderer.invoke(IPC.deckOpenPath, dir),
+  openDeckPath: (dir: string, operationId?: string): Promise<DeckSession | null> =>
+    ipcRenderer.invoke(IPC.deckOpenPath, dir, operationId),
+  /** Recently opened decks that still exist, most recent first. */
+  recentDecks: (): Promise<RecentDeck[]> => ipcRenderer.invoke(IPC.deckRecent),
   saveDeck: (dir: string, deck: Deck): Promise<void> =>
     ipcRenderer.invoke(IPC.deckSave, dir, deck),
   syncDeckSnapshot: (snapshot: DeckSessionSnapshot): Promise<void> =>

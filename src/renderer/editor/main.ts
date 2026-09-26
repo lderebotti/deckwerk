@@ -5,7 +5,7 @@ import '../collab/collab.css';
 import { applyAgentTransaction } from '@shared/agent.js';
 import type { Deck, SlideElement } from '@shared/deck.js';
 import { emptyDeck } from '@shared/deck.js';
-import type { AgentSessionConnection, AuthoredHtmlFile, PresentationImportResult } from '@shared/ipc.js';
+import type { AgentSessionConnection, AuthoredHtmlFile, PresentationImportResult, RecentDeck } from '@shared/ipc.js';
 import { captureEditorView, decodeEditorView, restoreEditorView } from '@shared/editorView.js';
 import { setIdSuffix } from '@shared/geometry.js';
 import { adoptAuthoredIds, describeHtmlSync, htmlSyncSummary } from '@shared/htmlSlides.js';
@@ -28,7 +28,7 @@ import { Inspector } from './inspector.js';
 import { HistoryPanel } from './historyPanel.js';
 import { authoredHtmlSync, fileName } from './htmlCompile.js';
 import { createShapeInsertPicker, createTableInsertPicker, insertText } from './elementCreation.js';
-import { createToolbarPicker, createToolbarSplitButton } from './exportPicker.js';
+import { createToolbarPicker, createToolbarSplitButton, type ToolbarPickerOption } from './exportPicker.js';
 import { showPdfExportDialog } from './pdfExportDialog.js';
 import { showWebExportDialog } from './webExportDialog.js';
 import { makePanelResizable } from './panelResize.js';
@@ -228,6 +228,8 @@ const welcome = new WelcomeScreen(el('canvas'), {
   openPresentation,
   importKeynote: importKeynotePresentation,
   importPowerPoint: importPowerPointPresentation,
+  recentPresentations,
+  openRecentPresentation,
 });
 const agentPanel = new AgentPanel({
   currentDeckPath: () => store.get().dir,
@@ -432,6 +434,7 @@ function buildToolbar(): void {
   fileActions.append(
     barButton('New', newPresentation),
     barButton('Open', openPresentation),
+    createToolbarPicker('Open Recent…', recentPresentationOptions),
     createToolbarPicker('Import…', importEntries),
     createToolbarPicker('Save As…', saveEntries, { deckOnly: true }),
   );
@@ -441,6 +444,7 @@ function buildToolbar(): void {
       options: [
         { label: 'New', action: newPresentation },
         { label: 'Open…', action: openPresentation },
+        { label: 'Open Recent…', submenu: recentPresentationOptions },
       ],
     },
     { label: 'Import', options: importEntries },
@@ -807,6 +811,35 @@ async function openPresentation(): Promise<void> {
   } catch (err) {
     setStatusMessage(`Open failed: ${err instanceof Error ? err.message : err}`);
   }
+}
+
+async function openRecentPresentation(dir: string): Promise<void> {
+  try {
+    await runOperation('Opening presentation…', async (operation) => {
+      const session = await window.api.openDeckPath(dir, operation.id);
+      if (session) await adopt(session.dir, session.deck, operation);
+    });
+  } catch (err) {
+    setStatusMessage(`Open failed: ${err instanceof Error ? err.message : err}`);
+  }
+}
+
+/** The last five decks opened in any window, bar this window's own. */
+async function recentPresentations(): Promise<RecentDeck[]> {
+  const current = store.get().dir;
+  return (await window.api.recentDecks().catch(() => []))
+    .filter((deck) => deck.dir !== current)
+    .slice(0, 5);
+}
+
+async function recentPresentationOptions(): Promise<ToolbarPickerOption[]> {
+  const recent = await recentPresentations();
+  if (recent.length === 0) return [{ label: 'No recent presentations', action: () => {}, disabled: true }];
+  return recent.map((deck) => ({
+    label: deck.name,
+    title: deck.dir,
+    action: () => void openRecentPresentation(deck.dir),
+  }));
 }
 
 async function saveAsPresentation(): Promise<void> {

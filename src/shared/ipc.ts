@@ -11,6 +11,7 @@ import type { EditorViewSnapshot } from './editorView.js';
 export const IPC = {
   deckOpen: 'deck:open',
   deckOpenPath: 'deck:openPath',
+  deckRecent: 'deck:recent',
   deckGet: 'deck:get',
   deckNew: 'deck:new',
   deckSave: 'deck:save',
@@ -183,6 +184,14 @@ export interface AuthoredHtmlFile {
   /** Absolute path, used to name the resulting change. */
   path: string;
   contents: string;
+}
+
+/** One entry of the "Open Recent" list, most recent first. */
+export interface RecentDeck {
+  /** Absolute path to the deck folder containing deck.json. */
+  dir: string;
+  /** The folder's name, for display. */
+  name: string;
 }
 
 /** An open deck: its folder on disk plus the parsed document. */
