@@ -15,8 +15,12 @@ import { currentSystemTheme } from './systemTheme.js';
 const preload = () => join(import.meta.dirname, '../preload/index.mjs');
 const APP_BACKGROUND = '#16161e';
 const HEADLESS_TEST = process.env['DECKWERK_HEADLESS_TEST'] === '1';
-/** The window's pre-paint colour: the desktop theme's ground when there is one. */
-const chromeBackground = (): string => currentSystemTheme()?.vars['--bg'] ?? APP_BACKGROUND;
+/** The window's pre-paint colour: the desktop theme's ground when there is one.
+ * Electron reads an 8-digit value as #AARRGGBB, so keep only the RGB part. */
+const chromeBackground = (): string => {
+  const bg = currentSystemTheme()?.vars['--bg'] ?? APP_BACKGROUND;
+  return bg.length === 9 ? bg.slice(0, 7) : bg;
+};
 
 export interface WindowContinuityState {
   bounds: Rectangle;

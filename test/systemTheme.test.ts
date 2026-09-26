@@ -50,6 +50,12 @@ describe('the Omarchy theme adapter', () => {
     expect(theme.vars['--line']).toContain('color-mix');
   });
 
+  it('rejects hex values of a length no colour syntax has', () => {
+    expect(systemTheme({ background: '#12345', mode: 'dark' }).vars['--bg']).toBe('#16161e');
+    expect(systemTheme({ background: '#1234567', mode: 'dark' }).vars['--bg']).toBe('#16161e');
+    expect(systemTheme({ background: '#12345678', mode: 'dark' }).vars['--bg']).toBe('#12345678');
+  });
+
   it('falls back to sensible colours when a theme omits the semantic names', () => {
     const theme = systemTheme({ color0: '#1e1e2e', color7: '#cdd6f4', color4: '#89b4fa' });
     expect(theme.mode).toBe('dark');

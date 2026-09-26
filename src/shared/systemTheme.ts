@@ -41,7 +41,7 @@ export function parseColorsToml(text: string): Record<string, string> {
   return colors;
 }
 
-const HEX = /^#[0-9a-fA-F]{3,8}$/;
+const HEX = /^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
 function firstColor(...values: (string | undefined)[]): string | null {
   for (const value of values) if (value && HEX.test(value.trim())) return value.trim();

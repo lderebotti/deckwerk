@@ -5,8 +5,14 @@ import type { SystemTheme } from '@shared/systemTheme.js';
  * its own `theme.css`; only the custom properties the chrome reads are set.
  */
 export function applySystemTheme(theme: SystemTheme | null): void {
-  if (!theme) return;
   const root = document.documentElement;
+  if (!theme) {
+    for (const property of Array.from(root.style)) {
+      if (property.startsWith('--')) root.style.removeProperty(property);
+    }
+    delete root.dataset['chromeTheme'];
+    return;
+  }
   for (const [property, value] of Object.entries(theme.vars)) {
     root.style.setProperty(property, value);
   }

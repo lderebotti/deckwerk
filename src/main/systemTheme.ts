@@ -68,6 +68,11 @@ export function startSystemThemeWatch(onChange: (theme: SystemTheme | null) => v
         if (changed) onChange(next);
       }, 200);
     });
+    watcher.on('error', () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = null;
+      watcher = null;
+    });
   } catch {
     // A directory we cannot watch is not fatal: the startup read still applies.
   }

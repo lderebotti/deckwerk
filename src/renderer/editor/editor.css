@@ -1016,7 +1016,7 @@ body.panel-resizing iframe { pointer-events: none; }
   min-height: 0;
   padding: 0;
 }
-.number-step-buttons button:hover { background: color-mix(in srgb, var(--panel-2) 75%, white); color: var(--text); }
+.number-step-buttons button:hover { background: color-mix(in srgb, var(--panel-2) 75%, var(--text)); color: var(--text); }
 .number-step-buttons button:focus-visible { outline: 1px solid var(--accent); }
 .optional-number-controls .icon-button { padding: 3px; }
 
@@ -1190,7 +1190,7 @@ body.panel-resizing iframe { pointer-events: none; }
    being cut away rather than only what is kept. */
 .mask-ghost {
   position: absolute;
-  border: 1px dashed rgb(255 255 255 / 60%);
+  border: 1px dashed color-mix(in srgb, var(--text) 60%, transparent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   pointer-events: none;
 }
@@ -1370,7 +1370,7 @@ button.primary {
   border-color: transparent;
   font-weight: 600;
 }
-button.primary:hover:not(:disabled) { background: #659cf8; border-color: transparent; }
+button.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 80%, var(--text)); border-color: transparent; }
 
 /* Slide rail: floating thumbnail cards. */
 #rail { padding: 10px 0; gap: 2px; }
@@ -1389,7 +1389,7 @@ button.primary:hover:not(:disabled) { background: #659cf8; border-color: transpa
 .rail-num { font-size: 10.5px; }
 
 .rail-thumb {
-  border-color: rgb(255 255 255 / 8%);
+  border-color: color-mix(in srgb, var(--text) 8%, transparent);
   border-radius: 6px;
   box-shadow: var(--shadow);
 }
@@ -1421,7 +1421,7 @@ button.primary:hover:not(:disabled) { background: #659cf8; border-color: transpa
 .insp-group {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: rgb(255 255 255 / 1.5%);
+  background: color-mix(in srgb, var(--text) 1.5%, transparent);
   padding: 12px;
   margin-bottom: 10px;
 }
@@ -1488,7 +1488,7 @@ input[type="range"] { accent-color: var(--accent); padding: 0; background: trans
 #status { border-top: 1px solid var(--line); background: var(--bg); font-size: 10.5px; letter-spacing: 0.01em; }
 
 /* Timeline rows breathe a little. */
-.step-block { border-radius: var(--radius); background: rgb(255 255 255 / 1.5%); }
+.step-block { border-radius: var(--radius); background: color-mix(in srgb, var(--text) 1.5%, transparent); }
 .timeline-row select, .timeline-row input { border-radius: 5px; }
 .history-item {
   display: grid;
@@ -1631,7 +1631,7 @@ input[type="range"] { accent-color: var(--accent); padding: 0; background: trans
   cursor: pointer;
 }
 
-.build-element-row:hover { background: rgb(255 255 255 / 6%); }
+.build-element-row:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
 
 .build-element-row.selected {
   background: var(--accent-soft, color-mix(in srgb, var(--accent) 22%, transparent));
@@ -1746,7 +1746,7 @@ input[type="range"] { accent-color: var(--accent); padding: 0; background: trans
 }
 .mask-action-row .mask-reset-segment:hover:not(:disabled) {
   border-left-color: rgb(255 255 255 / 50%);
-  background: #659cf8;
+  background: color-mix(in srgb, var(--accent) 80%, var(--text));
 }
 
 .z-order-row {
@@ -2294,7 +2294,7 @@ input[type="range"] { accent-color: var(--accent); border: 0; background: transp
   width: 100%;
   height: 142px;
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 14%);
+  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
   border-radius: 5px;
   outline: none;
   background:
@@ -3748,7 +3748,7 @@ select.panel-action-select {
 .table-picker-cell:hover,
 .table-picker-cell:focus-visible,
 .table-picker-cell.active {
-  border-color: color-mix(in srgb, var(--accent) 75%, white);
+  border-color: color-mix(in srgb, var(--accent) 75%, var(--text));
   background: color-mix(in srgb, var(--accent) 55%, var(--panel-2));
   outline: none;
 }
