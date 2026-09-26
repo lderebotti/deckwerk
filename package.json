@@ -9,6 +9,7 @@
     "slide-agent": "bin/slide-agent"
   },
   "license": "MIT",
+  "homepage": "https://github.com/vsitzmann/deckwerk",
   "scripts": {
     "dev": "electron-vite dev",
     "predev": "npm run build:collab",
