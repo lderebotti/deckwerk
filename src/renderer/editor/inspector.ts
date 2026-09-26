@@ -15,6 +15,7 @@ import type {
   TableSelection,
 } from './canvas.js';
 import { type AlignMode, alignElements } from './align.js';
+import { rotatedBounds } from '@shared/geometry.js';
 import { sameDeckIgnoringNotes, type EditorStore } from './store.js';
 import { LAYOUT_LABELS, applySlideLayout, type SlideLayout } from './slideLayouts.js';
 import { elementFollowsLayout, layoutGeometryFor, realignElementToLayout } from '@shared/layoutMasters.js';
@@ -680,19 +681,19 @@ export class Inspector {
   private alignSection(toSlide = false): HTMLElement {
     const wrap = group(toSlide ? 'Align to slide' : 'Align');
     const apply = (mode: AlignMode) => {
-      // ponytail: aligns the unrotated box, so a rotated element's corners can
-      // overhang an edge; centring is exact. Use its rotated bounds if that bites.
       const rects = this.store
         .selectedElements()
-        .map((e) => ({ id: e.id, x: e.x, y: e.y, w: e.w, h: e.h }));
+        .map((e) => ({ id: e.id, ...rotatedBounds(e) }));
       const canvas = this.store.get().deck.canvas;
       const moves = alignElements(rects, mode, toSlide ? { x: 0, y: 0, ...canvas } : undefined);
       if (moves.size === 0) return;
+      const bounds = new Map(rects.map((r) => [r.id, r]));
       this.store.updateSelected((el) => {
         const m = moves.get(el.id);
-        if (!m) return;
-        const dx = m.x === undefined ? 0 : Math.round(m.x) - el.x;
-        const dy = m.y === undefined ? 0 : Math.round(m.y) - el.y;
+        const r = bounds.get(el.id);
+        if (!m || !r) return;
+        const dx = m.x === undefined ? 0 : Math.round(m.x) - r.x;
+        const dy = m.y === undefined ? 0 : Math.round(m.y) - r.y;
         if (m.x !== undefined) el.x += dx;
         if (m.y !== undefined) el.y += dy;
         if (el.type === 'shape' && el.control) {

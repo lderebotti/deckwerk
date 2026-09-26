@@ -54,6 +54,17 @@ export function rectsIntersect(a: Rect, b: Rect): boolean {
   );
 }
 
+/** Axis-aligned bounds of an element as rendered (rotation about its centre). */
+export function rotatedBounds(el: Rect & { rot?: number }): Rect {
+  if (!el.rot) return { x: el.x, y: el.y, w: el.w, h: el.h };
+  const rad = (el.rot * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(rad));
+  const sin = Math.abs(Math.sin(rad));
+  const w = el.w * cos + el.h * sin;
+  const h = el.w * sin + el.h * cos;
+  return { x: el.x + (el.w - w) / 2, y: el.y + (el.h - h) / 2, w, h };
+}
+
 /**
  * Fit `content` inside `box` preserving aspect ratio. Used when dropping media
  * so a video lands at its natural proportions instead of stretched.

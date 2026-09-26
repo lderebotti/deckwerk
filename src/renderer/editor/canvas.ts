@@ -1,6 +1,6 @@
 import { openContextMenu } from './contextMenuPlacement.js';
 import type { Deck, Slide, SlideElement } from '@shared/deck.js';
-import { type Rect, fitScale, makeId } from '@shared/geometry.js';
+import { type Rect, fitScale, makeId, rotatedBounds } from '@shared/geometry.js';
 
 type XY = { x: number; y: number };
 import {
@@ -6469,17 +6469,6 @@ function sameStructure(a: Slide, b: Slide, ignoreHtml = false): boolean {
     if (ac !== bc) return false;
   }
   return true;
-}
-
-/** Axis-aligned bounds of an element as rendered (rotation about its centre). */
-function rotatedBounds(el: SlideElement): Rect {
-  if (!el.rot) return { x: el.x, y: el.y, w: el.w, h: el.h };
-  const rad = (el.rot * Math.PI) / 180;
-  const cos = Math.abs(Math.cos(rad));
-  const sin = Math.abs(Math.sin(rad));
-  const w = el.w * cos + el.h * sin;
-  const h = el.w * sin + el.h * cos;
-  return { x: el.x + (el.w - w) / 2, y: el.y + (el.h - h) / 2, w, h };
 }
 
 /** Geometry-aware hit testing, with a screen-derived tolerance for strokes. */
