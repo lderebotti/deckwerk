@@ -22,9 +22,27 @@ describe('text box frame', () => {
 
   it('clearing everything leaves no frame declarations behind', () => {
     const el = text({ 'background-color': '#fff', border: '2px solid #000', 'border-radius': '8px' });
-    setTextBoxStyle(el, { fill: null, borderWidth: 0, radius: 0, padding: 0 });
+    setTextBoxStyle(el, { fill: null, borderColor: null, borderWidth: 0, radius: 0, padding: 0 });
     expect(el.style).toEqual({});
     expect(textBoxStyle(el)).toEqual({ fill: null, borderColor: null, borderWidth: 0, radius: 0, padding: 0 });
+  });
+
+  it('clears imported padding longhands', () => {
+    const el = text({
+      'padding-top': '24px', 'padding-right': '24px', 'padding-bottom': '24px', 'padding-left': '24px',
+    });
+    setTextBoxStyle(el, { padding: 0 });
+    expect(Object.keys(el.style).filter((key) => key.startsWith('padding'))).toEqual([]);
+    expect(textBoxStyle(el).padding).toBe(0);
+  });
+
+  it('keeps the border colour across a width of 0', () => {
+    const el = text();
+    setTextBoxStyle(el, { borderColor: 'red', borderWidth: 2 });
+    setTextBoxStyle(el, { borderWidth: 0 });
+    expect(el.style['border-width']).toBeUndefined();
+    setTextBoxStyle(el, { borderWidth: 2 });
+    expect(el.style['border-color']).toBe('red');
   });
 
   it('keeps a gradient background while changing the fill colour', () => {

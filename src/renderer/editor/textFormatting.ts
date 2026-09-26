@@ -386,7 +386,7 @@ export function textBoxStyle(element: TextElement): TextBoxStyle {
     : 0;
   return {
     fill: transparent(probe.backgroundColor) ? null : probe.backgroundColor,
-    borderColor: width > 0 && !transparent(probe.borderTopColor) ? probe.borderTopColor : null,
+    borderColor: transparent(probe.borderTopColor) ? null : probe.borderTopColor,
     borderWidth: width,
     radius: parseFloat(probe.borderTopLeftRadius) || 0,
     padding: parseFloat(probe.paddingTop) || 0,
@@ -401,10 +401,9 @@ export function textBoxStyle(element: TextElement): TextBoxStyle {
 export function setTextBoxStyle(element: TextElement, patch: Partial<TextBoxStyle>): void {
   const next = { ...textBoxStyle(element), ...patch };
   const style = { ...element.style };
-  for (const property of [
-    'background-color', 'border', 'border-style', 'border-width', 'border-color',
-    'border-radius', 'padding',
-  ]) delete style[property];
+  for (const property of Object.keys(style)) {
+    if (/^(background-color|border(-.+)?|padding(-.+)?)$/.test(property)) delete style[property];
+  }
   // ponytail: a gradient or image `background` is kept; only its colour layer is ours.
   if (style.background !== undefined) {
     const probe = document.createElement('div').style;
@@ -416,6 +415,9 @@ export function setTextBoxStyle(element: TextElement, patch: Partial<TextBoxStyl
     style['border-style'] = 'solid';
     style['border-width'] = `${next.borderWidth}px`;
     style['border-color'] = next.borderColor ?? '#000000';
+  } else if (next.borderColor) {
+    // A colour outlives a width of 0, so raising the width again paints it.
+    style['border-color'] = next.borderColor;
   }
   if (next.radius > 0) style['border-radius'] = `${next.radius}px`;
   if (next.padding > 0) style.padding = `${next.padding}px`;
