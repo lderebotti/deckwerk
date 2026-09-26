@@ -1,4 +1,5 @@
-import { access, readFile, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { access, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 import type { RecentDeck } from '@shared/ipc.js';
 import { DECK_FILE } from './deckStore.js';
@@ -31,7 +32,16 @@ export function rememberRecentDeck(file: string, dir: string): Promise<void> {
   writes = writes
     .then(async () => {
       const dirs = [canonical, ...(await readDirs(file)).filter((known) => known !== canonical)];
-      await writeFile(file, JSON.stringify(dirs.slice(0, LIMIT), null, 2));
+      // Write beside the file, then rename over it, as deckStore does: a
+      // truncated file parses as an empty list and silently forgets everything.
+      const temporary = `${file}.${randomUUID()}.tmp`;
+      try {
+        await writeFile(temporary, JSON.stringify(dirs.slice(0, LIMIT), null, 2));
+        await rename(temporary, file);
+      } catch (error) {
+        await rm(temporary, { force: true }).catch(() => {});
+        throw error;
+      }
     })
     .catch((error: unknown) => console.error(`Could not update ${file}:`, error));
   return writes;

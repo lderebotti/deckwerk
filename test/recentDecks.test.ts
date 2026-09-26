@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -48,5 +48,7 @@ describe('recent decks', () => {
     const names = (await recentDecks(file)).map((deck) => deck.name);
     expect(names).toHaveLength(10);
     expect(names[0]).toBe('d11');
+    // Written via a temporary file and a rename; none is left behind.
+    expect((await readdir(root)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
   });
 });

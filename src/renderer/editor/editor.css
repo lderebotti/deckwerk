@@ -3706,7 +3706,7 @@ select.panel-action-select {
 .shape-menu-item:hover { background: var(--accent); color: #fff; border-color: transparent; }
 .shape-menu-item:hover svg { color: #fff; }
 .shape-menu-item svg { flex: none; color: var(--muted); }
-.shape-menu-item:disabled { background: transparent; color: var(--text); }
+.shape-menu-item:disabled { background: transparent; color: var(--muted); cursor: default; }
 
 /* A flyout beside its menu (File → Open Recent). The ::before bridges the gap
    so the pointer can cross from the item to the flyout without closing it. */
