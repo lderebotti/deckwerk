@@ -24,17 +24,22 @@ export type AlignMode =
   | 'matchW'
   | 'matchH';
 
+/**
+ * `bounds` aligns each rect against that box (the slide) instead of the
+ * selection's own extent, so a single element can be aligned too.
+ */
 export function alignElements(
   rects: AlignRect[],
   mode: AlignMode,
+  bounds?: Omit<AlignRect, 'id'>,
 ): Map<string, Partial<AlignRect>> {
   const out = new Map<string, Partial<AlignRect>>();
-  if (rects.length < 2) return out;
+  if (rects.length < (bounds ? 1 : 2)) return out;
 
-  const minX = Math.min(...rects.map((r) => r.x));
-  const maxRight = Math.max(...rects.map((r) => r.x + r.w));
-  const minY = Math.min(...rects.map((r) => r.y));
-  const maxBottom = Math.max(...rects.map((r) => r.y + r.h));
+  const minX = bounds ? bounds.x : Math.min(...rects.map((r) => r.x));
+  const maxRight = bounds ? bounds.x + bounds.w : Math.max(...rects.map((r) => r.x + r.w));
+  const minY = bounds ? bounds.y : Math.min(...rects.map((r) => r.y));
+  const maxBottom = bounds ? bounds.y + bounds.h : Math.max(...rects.map((r) => r.y + r.h));
 
   switch (mode) {
     case 'left':

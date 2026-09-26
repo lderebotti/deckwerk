@@ -391,6 +391,7 @@ export class Inspector {
     } else {
       this.host.appendChild(sectionTitle(el.type));
     }
+    this.host.appendChild(this.alignSection(true));
     this.host.appendChild(this.geometrySection(selected));
     const specific = this.typeSection(el);
     if (specific) this.host.appendChild(specific);
@@ -672,14 +673,20 @@ export class Inspector {
     return trim.section;
   }
 
-  /** Align / distribute / match-size for a multi-selection, one undo entry. */
-  private alignSection(): HTMLElement {
-    const wrap = group('Align');
+  /**
+   * Align / distribute / match-size for a multi-selection, one undo entry.
+   * `toSlide` aligns against the slide instead, for a single element.
+   */
+  private alignSection(toSlide = false): HTMLElement {
+    const wrap = group(toSlide ? 'Align to slide' : 'Align');
     const apply = (mode: AlignMode) => {
+      // ponytail: aligns the unrotated box, so a rotated element's corners can
+      // overhang an edge; centring is exact. Use its rotated bounds if that bites.
       const rects = this.store
         .selectedElements()
         .map((e) => ({ id: e.id, x: e.x, y: e.y, w: e.w, h: e.h }));
-      const moves = alignElements(rects, mode);
+      const canvas = this.store.get().deck.canvas;
+      const moves = alignElements(rects, mode, toSlide ? { x: 0, y: 0, ...canvas } : undefined);
       if (moves.size === 0) return;
       this.store.updateSelected((el) => {
         const m = moves.get(el.id);
@@ -714,6 +721,12 @@ export class Inspector {
     };
     const pair = document.createElement('div');
     pair.className = 'align-strip-pair';
+    if (toSlide) {
+      pair.appendChild(strip([['left', 'Align to left edge of slide'], ['hcenter', 'Centre horizontally on slide'], ['right', 'Align to right edge of slide']]));
+      pair.appendChild(strip([['top', 'Align to top edge of slide'], ['vcenter', 'Centre vertically on slide'], ['bottom', 'Align to bottom edge of slide']]));
+      wrap.appendChild(pair);
+      return wrap;
+    }
     pair.appendChild(strip([['left', 'Align left'], ['hcenter', 'Align horizontal centres'], ['right', 'Align right']]));
     pair.appendChild(strip([['top', 'Align top'], ['vcenter', 'Align vertical centres'], ['bottom', 'Align bottom']]));
     wrap.appendChild(pair);

@@ -138,7 +138,7 @@ type OpName =
   | 'click' | 'shift-click' | 'double-click text' | 'double-click image then text'
   | 'type nonce' | 'bold mid-word' | 'escape' | 'click empty' | 'marquee'
   | 'rail hop' | 'undo' | 'redo' | 'undo round-trip' | 'delete selection'
-  | 'cmd+a' | 'box border width';
+  | 'cmd+a' | 'align to slide' | 'box border width';
 
 interface Violation { seed: number; step: number; op: OpName; oracle: string; detail: string }
 
@@ -388,6 +388,7 @@ function chooseOp(next: () => number, pre: CrossState): OpName {
   add('undo round-trip', 1);
   if (pre.editing === null && pre.selection.length > 0) add('delete selection', 2);
   add('cmd+a', 1);
+  if (pre.selection.length === 1) add('align to slide', 1);
   if (pre.selection.length === 1 && (pre.selection[0] === PARA || pre.selection[0] === LIST)) {
     add('box border width', 1);
   }
@@ -530,6 +531,16 @@ async function performOp(
     case 'cmd+a':
       await session.chord('a', 'KeyA', 65, MOD, pre.editing !== null ? ['selectAll'] : undefined);
       return 'same';
+    case 'align to slide': {
+      // The inspector button, pressed mid-edit or not: moves the box, never its text.
+      const label = pick(next, [
+        'Align to left edge of slide', 'Centre horizontally on slide', 'Align to right edge of slide',
+        'Align to top edge of slide', 'Centre vertically on slide', 'Align to bottom edge of slide',
+      ]);
+      await session.cdp.click(`.insp-group [aria-label="${label}"]`, label);
+      await wait(120);
+      return 'same';
+    }
     case 'box border width': {
       // Focusing an inspector field mid-edit ends the edit; the frame must land
       // on the selected box and never change any box's text.

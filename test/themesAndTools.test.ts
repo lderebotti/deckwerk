@@ -302,6 +302,13 @@ describe('align and distribute', () => {
   it('does nothing for fewer than two elements', () => {
     expect(alignElements([rects[0]], 'left').size).toBe(0);
   });
+
+  it('aligns a single element to the slide', () => {
+    const slide = { x: 0, y: 0, w: 1920, h: 1080 };
+    expect(alignElements([rects[1]], 'hcenter', slide).get('b')).toEqual({ x: 935 });
+    expect(alignElements([rects[1]], 'bottom', slide).get('b')).toEqual({ y: 1000 });
+    expect(alignElements([rects[1]], 'right', slide).get('b')).toEqual({ x: 1870 });
+  });
 });
 
 describe('element clipboard', () => {
