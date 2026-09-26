@@ -26,6 +26,9 @@ export const IPC = {
   deckKeyGet: 'deck:keyGet',
   deckKey: 'deck:key',
   themeCss: 'deck:themeCss',
+  /** Synchronous, at preload time: the active Omarchy theme, if any. */
+  systemThemeGet: 'system:themeGet',
+  systemTheme: 'system:theme',
   assetImport: 'asset:import',
   assetImportUrl: 'asset:importUrl',
   assetImportProgress: 'asset:importProgress',

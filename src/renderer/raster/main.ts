@@ -1,6 +1,7 @@
 import '../appChrome.css';
 import './raster.css';
 import type { RasterTarget } from '@shared/ipc.js';
+import { installSystemTheme } from '../systemTheme.js';
 import {
   bitmapPoint,
   paintSegment,
@@ -10,6 +11,8 @@ import {
   type PaintPoint,
   type PaintStroke,
 } from './painting.js';
+
+installSystemTheme();
 
 const el = <T extends HTMLElement>(id: string): T => {
   const node = document.getElementById(id);

@@ -54,6 +54,9 @@ import { trackVideoLoading } from '../player/videoLoadingProgress.js';
 import { DelayedOperationProgress } from '../editor/operationProgress.js';
 import { DesignWorkspace } from '../editor/designWorkspace.js';
 import { installResponsiveToolbar } from '../editor/responsiveToolbar.js';
+import { installSystemTheme } from '../systemTheme.js';
+
+installSystemTheme();
 
 /**
  * Browser collaboration shell: the same canvas, rail, inspector, theme

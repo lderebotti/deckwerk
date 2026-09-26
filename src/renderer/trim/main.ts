@@ -2,6 +2,9 @@ import '../appChrome.css';
 import './trim.css';
 import type { TrimRequest } from '@shared/ipc.js';
 import { clamp } from '@shared/geometry.js';
+import { installSystemTheme } from '../systemTheme.js';
+
+installSystemTheme();
 
 /**
  * Trim & crop: a thin UI over two ffmpeg operations and nothing else.

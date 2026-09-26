@@ -210,7 +210,7 @@ html, body {
   border: 1px solid var(--line);
   border-radius: 6px;
   margin: 0 0 10px;
-  background: #131316;
+  background: var(--canvas);
   color: var(--muted);
   font-size: 11px;
   white-space: pre-wrap;

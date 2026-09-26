@@ -152,14 +152,14 @@ button.danger:hover:not(:disabled) {
 .agent-assets input:first-child { grid-column: 1 / -1; }
 .agent-assets input, .agent-comment textarea { min-width: 0; border: 1px solid var(--ui-border); border-radius: var(--ui-radius-sm); background: var(--ui-surface-raised); color: var(--ui-text); padding: 6px 8px; font: inherit; }
 .agent-assets output { grid-column: 1 / -1; color: var(--ui-text-muted); font: 10px/1.35 var(--ui-mono); overflow-wrap: anywhere; }
-.agent-html-source { width: auto; min-height: 110px; resize: vertical; border: 0; border-block: 1px solid var(--ui-border); background: #0b0d12; color: #d8e0ef; padding: 12px; font: 11px/1.5 var(--ui-mono); }
+.agent-html-source { width: auto; min-height: 110px; resize: vertical; border: 0; border-block: 1px solid var(--ui-border); background: var(--canvas); color: var(--text); padding: 12px; font: 11px/1.5 var(--ui-mono); }
 .agent-actions span { flex: 1; color: var(--ui-text-muted); font-size: 11px; }
 .agent-actions span.error { color: var(--ui-danger); }
 .agent-previews { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-height: 0; padding: 0 12px 10px; }
 .agent-previews section { display: grid; grid-template-rows: 22px 1fr; min-width: 0; min-height: 0; }
 .agent-previews h3 { margin: 0; color: var(--ui-text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
-.agent-previews iframe { width: 100%; height: 100%; border: 1px solid var(--ui-border); background: #000; }
-.agent-diagnostics { max-height: 120px; margin: 0; overflow: auto; border-top: 1px solid var(--ui-border); background: #0b0d12; color: var(--ui-text-muted); padding: 9px 12px; font: 10px/1.4 var(--ui-mono); }
+.agent-previews iframe { width: 100%; height: 100%; border: 1px solid var(--ui-border); background: var(--bg); }
+.agent-diagnostics { max-height: 120px; margin: 0; overflow: auto; border-top: 1px solid var(--ui-border); background: var(--canvas); color: var(--ui-text-muted); padding: 9px 12px; font: 10px/1.4 var(--ui-mono); }
 .agent-comment-list { max-height: 220px; overflow: auto; border-block: 1px solid var(--ui-border); padding: 6px 12px; color: var(--ui-text-muted); font-size: 11px; }
 .agent-comment { display: grid; gap: 6px; padding: 7px 0; border-bottom: 1px solid var(--ui-border); }
 .agent-comment:last-child { border-bottom: 0; }

@@ -28,7 +28,7 @@ label {
   color: var(--muted);
 }
 
-button.active { border-color: var(--accent); background: rgb(59 130 246 / 22%); }
+button.active { border-color: var(--accent); background: var(--accent-soft); }
 
 input[type="color"] {
   width: 34px;

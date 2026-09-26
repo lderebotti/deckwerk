@@ -60,6 +60,9 @@ import { setSelectionInvariantChecks } from './selectionInvariants.js';
 import { SpeakerNotesDrawer } from './speakerNotesDrawer.js';
 import { applySpeakerNotes } from '@shared/speakerNotes.js';
 import { installResponsiveToolbar } from './responsiveToolbar.js';
+import { installSystemTheme } from '../systemTheme.js';
+
+installSystemTheme();
 
 /**
  * Editor shell: wires the panels to one store, owns the toolbar, the keyboard

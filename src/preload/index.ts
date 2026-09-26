@@ -4,6 +4,7 @@ import type { DeckHistoryDocument } from '@shared/deckHistory.js';
 import type { ClipboardReadResult, ClipboardWriteRequest } from '@shared/clipboard.js';
 import type { ClipboardImageSource } from '@shared/clipboardImages.js';
 import { IPC } from '@shared/ipc.js';
+import type { SystemTheme } from '@shared/systemTheme.js';
 import type {
   AgentContextDraft,
   AgentPanelState,
@@ -55,6 +56,22 @@ let deckKey: string = (() => {
 })();
 ipcRenderer.on(IPC.deckKey, (_e, key: string) => {
   deckKey = key;
+});
+
+/**
+ * The desktop's Omarchy palette, fetched synchronously so the first paint uses
+ * it — the same reason the deck key is synchronous. Null when Omarchy is not
+ * present, in which case the chrome keeps its built-in colours.
+ */
+let systemTheme: SystemTheme | null = (() => {
+  try {
+    return (ipcRenderer.sendSync(IPC.systemThemeGet) as SystemTheme | null) ?? null;
+  } catch {
+    return null;
+  }
+})();
+ipcRenderer.on(IPC.systemTheme, (_e, theme: SystemTheme | null) => {
+  systemTheme = theme ?? null;
 });
 
 /**
@@ -198,6 +215,10 @@ const api = {
   onDeckState: (fn: (s: DeckSession) => void): (() => void) =>
     on(IPC.deckState, fn),
   onThemeCss: (fn: (css: string) => void): (() => void) => on(IPC.themeCss, fn),
+  /** The active Omarchy theme, or null when the desktop is not Omarchy. */
+  getSystemTheme: (): SystemTheme | null => systemTheme,
+  onSystemTheme: (fn: (theme: SystemTheme | null) => void): (() => void) =>
+    on(IPC.systemTheme, fn),
   onAgentRequest: (fn: (request: AgentRequest) => void): (() => void) =>
     on(IPC.agentRequest, fn),
   onAgentPanelState: (fn: (state: AgentPanelState) => void): (() => void) =>

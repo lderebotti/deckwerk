@@ -66,6 +66,7 @@ import { exportDeck } from './exportDeck.js';
 import { writeExportThumbnail } from './exportThumbnail.js';
 import { probeMedia, runTrim } from './ffmpeg.js';
 import { attachRendererHealth } from './windowHealth.js';
+import { currentSystemTheme, startSystemThemeWatch } from './systemTheme.js';
 import { POSTER_HOST, posterFor } from './posterCache.js';
 import { showOpenDialog, showSaveDialog } from './dialogs.js';
 import { importKeynote } from './keynoteImport.js';
@@ -599,6 +600,14 @@ app.whenReady().then(async () => {
   installAssetProtocol();
   registerHandlers();
 
+  // Read the desktop theme before the first window loads, so its first paint
+  // already wears it, and follow later switches live.
+  startSystemThemeWatch((theme) => {
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send(IPC.systemTheme, theme);
+    }
+  });
+
   const initial = deckDirFromArgv();
   const deck = initial
     ? await loadDeck(initial).catch((err: unknown) => {
@@ -688,6 +697,10 @@ function registerHandlers(): void {
   // Answered synchronously during preload: `assetUrl` is called on first paint.
   ipcMain.on(IPC.deckKeyGet, (event) => {
     event.returnValue = ownerOf(event.sender)?.deckKey ?? NO_DECK_KEY;
+  });
+  // Also answered at preload time: the chrome must paint in the desktop theme.
+  ipcMain.on(IPC.systemThemeGet, (event) => {
+    event.returnValue = currentSystemTheme();
   });
   ipcMain.handle(IPC.deckHistoryLoad, async (event, dir: string): Promise<DeckHistorySession> => {
     const s = requireSession(event);

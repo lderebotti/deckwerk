@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { BrowserWindow, screen, shell } from 'electron';
 import type { Rectangle } from 'electron';
 import { chooseAudienceDisplay, chooseDisplayById } from './presentationDisplays.js';
+import { currentSystemTheme } from './systemTheme.js';
 
 /**
  * Window creation. Three kinds: the editor, the fullscreen present window and
@@ -14,6 +15,8 @@ import { chooseAudienceDisplay, chooseDisplayById } from './presentationDisplays
 const preload = () => join(import.meta.dirname, '../preload/index.mjs');
 const APP_BACKGROUND = '#16161e';
 const HEADLESS_TEST = process.env['DECKWERK_HEADLESS_TEST'] === '1';
+/** The window's pre-paint colour: the desktop theme's ground when there is one. */
+const chromeBackground = (): string => currentSystemTheme()?.vars['--bg'] ?? APP_BACKGROUND;
 
 export interface WindowContinuityState {
   bounds: Rectangle;
@@ -145,7 +148,7 @@ export function createEditorWindow(query = '', state?: WindowContinuityState): B
     height: 1000,
     ...continuityOptions(state),
     ...minimumSize(1100, 700),
-    backgroundColor: APP_BACKGROUND,
+    backgroundColor: chromeBackground(),
     show: false,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
@@ -178,7 +181,7 @@ export function createCollabHostWindow(url: string, state?: WindowContinuityStat
     height: 1000,
     ...continuityOptions(state),
     ...minimumSize(1100, 700),
-    backgroundColor: APP_BACKGROUND,
+    backgroundColor: chromeBackground(),
     show: false,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
@@ -261,7 +264,7 @@ export function createPresenterWindow(
     height: target.bounds.height,
     fullscreen: true,
     autoHideMenuBar: true,
-    backgroundColor: APP_BACKGROUND,
+    backgroundColor: chromeBackground(),
     title: 'Speaker View',
     show: false,
     webPreferences: {
@@ -324,7 +327,7 @@ export function createTrimWindow(): BrowserWindow {
     width: 1100,
     height: 820,
     ...minimumSize(800, 640),
-    backgroundColor: APP_BACKGROUND,
+    backgroundColor: chromeBackground(),
     title: 'Trim & Crop',
     show: false,
     webPreferences: {
@@ -351,7 +354,7 @@ export function createRasterWindow(): BrowserWindow {
     width: 1180,
     height: 860,
     ...minimumSize(760, 580),
-    backgroundColor: APP_BACKGROUND,
+    backgroundColor: chromeBackground(),
     title: 'Raster Paint',
     show: false,
     webPreferences: {

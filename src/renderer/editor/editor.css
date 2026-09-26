@@ -307,7 +307,7 @@ body.panel-resizing iframe { pointer-events: none; }
   position: relative;
   overflow: hidden;
   overscroll-behavior: none;
-  background: #141416;
+  background: var(--canvas);
 }
 
 .canvas-host.drop-active { box-shadow: inset 0 0 0 3px var(--accent); }
@@ -545,8 +545,8 @@ body.panel-resizing iframe { pointer-events: none; }
   overflow-y: auto;
   padding: 48px;
   background:
-    radial-gradient(circle at 50% 38%, rgb(59 130 246 / 14%), transparent 38%),
-    #141416;
+    radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 38%),
+    var(--canvas);
   text-align: center;
 }
 
@@ -560,7 +560,7 @@ body.panel-resizing iframe { pointer-events: none; }
   border-radius: 15px;
   place-items: center;
   background: var(--accent);
-  box-shadow: 0 12px 35px rgb(59 130 246 / 28%);
+  box-shadow: 0 12px 35px color-mix(in srgb, var(--accent) 28%, transparent);
   color: white;
   font: 700 28px/1 system-ui, sans-serif;
 }
@@ -592,14 +592,14 @@ body.panel-resizing iframe { pointer-events: none; }
   justify-content: center;
   flex-direction: column;
   padding: 20px;
-  border-color: #404047;
-  background: rgb(46 46 50 / 88%);
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
   text-align: left;
 }
 
 .welcome-action:hover:not(:disabled) {
   border-color: var(--accent);
-  background: #343944;
+  background: var(--panel-2);
   transform: translateY(-1px);
 }
 
@@ -653,7 +653,7 @@ body.panel-resizing iframe { pointer-events: none; }
    even when the text is short or the slide background matches it. */
 .element.editing {
   outline: 2px solid var(--accent);
-  background: rgb(59 130 246 / 8%);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .element.editing [contenteditable] {
@@ -812,7 +812,7 @@ body.panel-resizing iframe { pointer-events: none; }
 .marquee {
   position: absolute;
   border: 1px solid var(--accent);
-  background: rgb(59 130 246 / 15%);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 /* --- side panels --- */
@@ -1191,7 +1191,7 @@ body.panel-resizing iframe { pointer-events: none; }
 .mask-ghost {
   position: absolute;
   border: 1px dashed rgb(255 255 255 / 60%);
-  background: rgb(59 130 246 / 12%);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
   pointer-events: none;
 }
 
@@ -1399,7 +1399,7 @@ button.primary:hover:not(:disabled) { background: #659cf8; border-color: transpa
 .rail-actions button { border-color: var(--line); }
 
 /* Canvas: deeper stage, softer slide shadow. */
-.canvas-host { background: #101013; }
+.canvas-host { background: var(--canvas); }
 .canvas-host .stage { box-shadow: 0 12px 60px rgb(0 0 0 / 55%), 0 2px 8px rgb(0 0 0 / 40%); border-radius: 2px; }
 
 /* Side panel: tabs as pills, groups as cards. */
@@ -1634,7 +1634,7 @@ input[type="range"] { accent-color: var(--accent); padding: 0; background: trans
 .build-element-row:hover { background: rgb(255 255 255 / 6%); }
 
 .build-element-row.selected {
-  background: var(--accent-soft, rgb(59 130 246 / 22%));
+  background: var(--accent-soft, color-mix(in srgb, var(--accent) 22%, transparent));
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
@@ -1829,10 +1829,10 @@ input[type="range"] { accent-color: var(--accent); padding: 0; background: trans
   border-radius: 2px;
   background: transparent;
 }
-.morph-object-hit:hover { border-color: #f59e0b; background: rgb(245 158 11 / 6%); }
+.morph-object-hit:hover { border-color: var(--build-orange); background: color-mix(in srgb, var(--build-orange) 6%, transparent); }
 .morph-object-hit-readonly { pointer-events: none; }
-.morph-object-hit.paired { border-color: var(--accent); background: rgb(59 130 246 / 4%); }
-.morph-object-hit.selected-source { border-color: #f59e0b; background: rgb(245 158 11 / 8%); box-shadow: 0 0 0 1px #f59e0b; }
+.morph-object-hit.paired { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.morph-object-hit.selected-source { border-color: var(--build-orange); background: color-mix(in srgb, var(--build-orange) 8%, transparent); box-shadow: 0 0 0 1px var(--build-orange); }
 .morph-object-hit.paired::after {
   content: attr(data-pair-label);
   position: absolute;
@@ -1883,7 +1883,7 @@ input[type="range"] { accent-color: var(--accent); padding: 0; background: trans
   text-align: left;
   cursor: pointer;
 }
-.morph-list-pick:hover { background: rgb(245 158 11 / 8%); }
+.morph-list-pick:hover { background: color-mix(in srgb, var(--build-orange) 8%, transparent); }
 .morph-list-pick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .morph-list-badge {
   display: grid;
@@ -1899,8 +1899,8 @@ input[type="range"] { accent-color: var(--accent); padding: 0; background: trans
 }
 .morph-list-item.paired .morph-list-pick { color: var(--accent); }
 .morph-list-item.selected-source {
-  background: rgb(245 158 11 / 10%);
-  box-shadow: inset 0 0 0 1px #f59e0b;
+  background: color-mix(in srgb, var(--build-orange) 10%, transparent);
+  box-shadow: inset 0 0 0 1px var(--build-orange);
 }
 .morph-list-item .icon-button { flex: none; margin-right: 4px; }
 .morph-compact-preview { cursor: pointer; }
@@ -1913,7 +1913,7 @@ input[type="range"] { accent-color: var(--accent); padding: 0; background: trans
   inset: 0;
   display: grid;
   padding: 28px;
-  background: rgb(4 5 8 / 82%);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: blur(8px);
   place-items: center;
 }
@@ -1956,12 +1956,13 @@ input[type="range"] { accent-color: var(--accent); padding: 0; background: trans
   --text: #c0caf5;
   --muted: #565f89;
   --accent: #7aa2f7;      /* pastel blue */
-  --accent-soft: rgb(122 162 247 / 12%);
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --green: #9ece6a;
   --yellow: #e0af68;
   --danger: #f7768e;      /* pastel red */
   --radius: 0;
   --mono: "Monaspace Krypton", monospace;
+  --canvas: #101017;
 }
 
 html, body {
@@ -2008,7 +2009,7 @@ button.primary {
   color: var(--accent);
   font-weight: 600;
 }
-button.primary:hover:not(:disabled) { background: rgb(122 162 247 / 22%); }
+button.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 22%, transparent); }
 
 .bar-select {
   border: 1px solid var(--line);
@@ -2026,7 +2027,7 @@ button.primary:hover:not(:disabled) { background: rgb(122 162 247 / 22%); }
   background: transparent;
 }
 .rail-item:hover { background: var(--panel-2); border-color: var(--line); }
-.rail-item.selected { background: rgb(122 162 247 / 7%); border-color: rgb(122 162 247 / 55%); }
+.rail-item.selected { background: color-mix(in srgb, var(--accent) 7%, transparent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
 .rail-item.active { background: var(--accent-soft); border-color: var(--accent); }
 
 .rail-num { font: 10px var(--mono); color: var(--muted); }
@@ -2041,11 +2042,11 @@ button.primary:hover:not(:disabled) { background: rgb(122 162 247 / 22%); }
      and clips the opposite edges instead of framing it symmetrically. */
   box-shadow: inset 0 0 0 1px var(--rail-thumb-stroke);
 }
-.rail-item.selected .rail-thumb { --rail-thumb-stroke: rgb(122 162 247 / 65%); }
+.rail-item.selected .rail-thumb { --rail-thumb-stroke: color-mix(in srgb, var(--accent) 65%, transparent); }
 .rail-item.active .rail-thumb { --rail-thumb-stroke: var(--accent); }
 
 /* Canvas: flat, focused. */
-.canvas-host { background: #101017; }
+.canvas-host { background: var(--canvas); }
 .canvas-host .stage { box-shadow: 0 0 0 1px var(--line), 0 18px 50px rgb(0 0 0 / 60%); border-radius: 0; }
 
 /* Panels read like a TUI: uppercase mono section headers, ruled groups. */
@@ -2825,17 +2826,17 @@ button.morph-object-hit:hover:not(:disabled) {
   background: transparent;
 }
 button.morph-object-hit:hover:not(:disabled) {
-  border-color: #f59e0b;
-  background: rgb(245 158 11 / 3%);
+  border-color: var(--build-orange);
+  background: color-mix(in srgb, var(--build-orange) 3%, transparent);
 }
 button.morph-object-hit.paired {
   border-color: var(--accent);
-  background: rgb(59 130 246 / 3%);
+  background: color-mix(in srgb, var(--accent) 3%, transparent);
 }
 button.morph-object-hit.selected-source,
 button.morph-object-hit.selected-source:hover:not(:disabled) {
-  border-color: #f59e0b;
-  background: rgb(245 158 11 / 5%);
+  border-color: var(--build-orange);
+  background: color-mix(in srgb, var(--build-orange) 5%, transparent);
 }
 
 /* The stage must not clip editor chrome: an element at the slide edge needs
@@ -2974,7 +2975,7 @@ button.morph-object-hit.selected-source:hover:not(:disabled) {
   vertical-align: 1px;
 }
 
-.agent-chat-status[data-state="ready"]::before { background: #4ade80; }
+.agent-chat-status[data-state="ready"]::before { background: var(--green); }
 .agent-chat-status[data-state="busy"]::before { background: var(--accent); }
 .agent-chat-status[data-state="error"]::before { background: var(--danger); }
 
@@ -3051,9 +3052,9 @@ button.morph-object-hit.selected-source:hover:not(:disabled) {
 .agent-chat-fast-mode[hidden] { display: none; }
 
 .agent-chat-fast-mode.active {
-  border-color: #f59e0b;
-  background: rgb(245 158 11 / 14%);
-  color: #fbbf24;
+  border-color: var(--build-orange);
+  background: color-mix(in srgb, var(--build-orange) 14%, transparent);
+  color: var(--yellow);
 }
 
 .agent-chat-scratchpad-bar {
@@ -3141,7 +3142,7 @@ button.morph-object-hit.selected-source:hover:not(:disabled) {
   min-height: 0;
   flex: 1;
   border: 0;
-  background: #111;
+  background: var(--canvas);
 }
 
 @media (max-width: 900px) {
@@ -3268,7 +3269,7 @@ button.morph-object-hit.selected-source:hover:not(:disabled) {
 .agent-chat-message-system .agent-chat-message-body,
 .agent-chat-message.error .agent-chat-message-body {
   border-color: color-mix(in srgb, var(--danger) 60%, var(--line));
-  color: #ffb4ad;
+  color: var(--danger);
 }
 
 .agent-chat-error {
@@ -3277,7 +3278,7 @@ button.morph-object-hit.selected-source:hover:not(:disabled) {
   padding: 7px 9px;
   border: 1px solid color-mix(in srgb, var(--danger) 60%, var(--line));
   border-radius: 6px;
-  color: #ffb4ad;
+  color: var(--danger);
   font-size: 11px;
 }
 
@@ -3329,7 +3330,7 @@ button.morph-object-hit.selected-source:hover:not(:disabled) {
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgb(4 5 8 / 82%);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: blur(8px);
 }
 

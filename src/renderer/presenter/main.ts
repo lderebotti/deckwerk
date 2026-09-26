@@ -4,6 +4,9 @@ import './presenter.css';
 import type { DeckSession } from '@shared/ipc.js';
 import { bindSpeakerKeys, createSpeakerView } from './speakerView.js';
 import { installWindowApiPosterProvider } from '../player/previewPosterProvider.js';
+import { installSystemTheme } from '../systemTheme.js';
+
+installSystemTheme();
 
 // Thumbnails in Speaker View take their frames from the main process, so this
 // window never opens a video pipeline for a preview (see posterCache.ts).
