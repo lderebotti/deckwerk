@@ -12,11 +12,38 @@ export interface KeyHandlers {
   onHome?: () => void;
 }
 
+/**
+ * The laser pointer: a red dot that follows the mouse while presenting, toggled
+ * with L (Ctrl+L as in PowerPoint). The present windows hide the cursor, so the
+ * dot is the only pointer the audience sees.
+ */
+export function bindLaserPointer(target: Window | HTMLElement): { toggle: () => boolean; dispose: () => void } {
+  const doc = 'document' in target ? target.document : target.ownerDocument;
+  const dot = doc.createElement('div');
+  dot.className = 'laser-pointer';
+  dot.hidden = true;
+  dot.style.transform = 'translate(-100px, -100px)';
+  doc.body.appendChild(dot);
+  const onMove = (ev: Event) => {
+    const e = ev as MouseEvent;
+    dot.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+  };
+  target.addEventListener('mousemove', onMove);
+  return {
+    toggle: () => (dot.hidden = !dot.hidden, !dot.hidden),
+    dispose: () => {
+      target.removeEventListener('mousemove', onMove);
+      dot.remove();
+    },
+  };
+}
+
 export function bindPresentKeys(
   target: Window | HTMLElement,
   player: Player,
   handlers: KeyHandlers = {},
 ): () => void {
+  const laser = bindLaserPointer(target);
   const onKey = (ev: Event) => {
     const e = ev as KeyboardEvent;
     // Never steal keys from a focused field; the editor preview shares this map.
@@ -57,6 +84,11 @@ export function bindPresentKeys(
         e.preventDefault();
         handlers.onExit?.();
         break;
+      case 'l':
+      case 'L':
+        e.preventDefault();
+        laser.toggle();
+        break;
       case 'o':
       case 'O':
         e.preventDefault();
@@ -66,5 +98,8 @@ export function bindPresentKeys(
   };
 
   target.addEventListener('keydown', onKey);
-  return () => target.removeEventListener('keydown', onKey);
+  return () => {
+    target.removeEventListener('keydown', onKey);
+    laser.dispose();
+  };
 }

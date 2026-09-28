@@ -217,3 +217,19 @@
 
 
 
+
+/* The laser pointer (keys.ts): a glowing red dot centred on the mouse. */
+.laser-pointer {
+  position: fixed;
+  left: -9px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 15%, #ff2a2a 40%, rgba(255, 0, 0, 0.6) 70%, transparent);
+  box-shadow: 0 0 12px 4px rgba(255, 0, 0, 0.55);
+  pointer-events: none;
+  z-index: 2147483647;
+}
+.laser-pointer[hidden] { display: none; }
+body:has(> .laser-pointer:not([hidden])) * { cursor: none !important; }
