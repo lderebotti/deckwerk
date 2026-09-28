@@ -42,8 +42,10 @@ describe('player blanking', () => {
     expect(element.style.visibility).toBe('visible');
     expect(player.toggleBlank()).toBe(true);
     expect(stage.style.opacity).toBe('0');
+    expect(stage.classList.contains('blanked')).toBe(true);
 
     expect(player.toggleBlank()).toBe(false);
     expect(stage.style.opacity).toBe('1');
+    expect(stage.classList.contains('blanked')).toBe(false);
   });
 });

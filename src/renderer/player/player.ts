@@ -1141,6 +1141,8 @@ export class Player {
     // through while the audience display is blanked. Keeping the stage laid
     // out also lets navigation and auto-fit continue while it is blank.
     this.stage.style.opacity = this.blanked ? '0' : '1';
+    // player.css hides the laser pointer while this is set.
+    this.stage.classList.toggle('blanked', this.blanked);
     for (const video of this.stage.querySelectorAll('video')) {
       if (this.blanked) video.pause();
     }
