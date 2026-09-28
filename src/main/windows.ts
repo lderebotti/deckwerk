@@ -241,6 +241,8 @@ export function createPresentWindow(
     },
   });
   openWebLinksExternally(win);
+  // The page's own <title> would otherwise replace the name the call lists.
+  if (windowed) win.on('page-title-updated', (event) => event.preventDefault());
   win.once('ready-to-show', () => {
     if (!windowed) showFullscreenWindow(win);
     else if (!HEADLESS_TEST) win.show();

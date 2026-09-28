@@ -24,6 +24,7 @@ vi.mock('electron', () => ({
     once = vi.fn((event: string, listener: () => void) => {
       if (event === 'ready-to-show') electron.created.at(-1)!.ready = listener;
     });
+    on = vi.fn();
     show = vi.fn();
     focus = vi.fn();
     setFullScreen = vi.fn();
@@ -77,6 +78,8 @@ describe('Speaker View window visibility', () => {
     // Covered by Speaker View, it must keep painting for the call.
     expect((audience.options.webPreferences as { backgroundThrottling: boolean })
       .backgroundThrottling).toBe(false);
+    expect((audience.window as unknown as { on: ReturnType<typeof vi.fn> }).on)
+      .toHaveBeenCalledWith('page-title-updated', expect.any(Function));
     audience.ready();
     expect(audience.window.show).toHaveBeenCalledOnce();
     expect(audience.window.setFullScreen).not.toHaveBeenCalled();
