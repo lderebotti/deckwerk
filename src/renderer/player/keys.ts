@@ -17,7 +17,11 @@ export interface KeyHandlers {
  * with L (Ctrl+L as in PowerPoint). The present windows hide the cursor, so the
  * dot is the only pointer the audience sees.
  */
-export function bindLaserPointer(target: Window | HTMLElement): { toggle: () => boolean; dispose: () => void } {
+export function bindLaserPointer(target: Window | HTMLElement): {
+  toggle: () => boolean;
+  setVisible: (visible: boolean) => void;
+  dispose: () => void;
+} {
   const doc = 'document' in target ? target.document : target.ownerDocument;
   const dot = doc.createElement('div');
   dot.className = 'laser-pointer';
@@ -31,11 +35,25 @@ export function bindLaserPointer(target: Window | HTMLElement): { toggle: () => 
   target.addEventListener('mousemove', onMove);
   return {
     toggle: () => (dot.hidden = !dot.hidden, !dot.hidden),
+    setVisible: (visible) => { dot.hidden = !visible; },
     dispose: () => {
       target.removeEventListener('mousemove', onMove);
       dot.remove();
     },
   };
+}
+
+/**
+ * Show the laser dot at a fraction of `stage`, for a pointer relayed from
+ * Speaker View; null hides it. Uses the dot `bindPresentKeys` created.
+ */
+export function pointLaserAt(stage: Element | null, at: { x: number; y: number } | null): void {
+  const dot = stage?.ownerDocument.querySelector<HTMLElement>('.laser-pointer');
+  if (!stage || !dot) return;
+  dot.hidden = !at;
+  if (!at) return;
+  const r = stage.getBoundingClientRect();
+  dot.style.transform = `translate(${r.left + at.x * r.width}px, ${r.top + at.y * r.height}px)`;
 }
 
 export function bindPresentKeys(

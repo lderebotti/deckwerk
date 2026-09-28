@@ -124,7 +124,9 @@ export type { AgentContextDraft, AgentRequest, AgentResponse };
 
 export type PresentationCommand =
   | { type: 'next' | 'prev' | 'toggleBlank' | 'swapDisplays' | 'exit' }
-  | { type: 'goTo'; slide: number };
+  | { type: 'goTo'; slide: number }
+  /** Speaker View's laser, as a fraction of the slide; null hides it. */
+  | { type: 'laser'; at: { x: number; y: number } | null };
 
 export interface PresentationState {
   cursor: { slide: number; step: number };

@@ -6,7 +6,7 @@ import {
   prevLeavesPresentationRange,
   type PresentationRange,
 } from '@shared/presentationRange.js';
-import { bindPresentKeys } from '../player/keys.js';
+import { bindPresentKeys, pointLaserAt } from '../player/keys.js';
 import { Player } from '../player/player.js';
 import { eventOnInteractiveWeb, slideLinkFromEvent } from '../player/links.js';
 import { selectionPreventsAdvance } from '../player/presentationPointer.js';
@@ -133,6 +133,7 @@ window.api.onPresentCommand((command: PresentationCommand) => {
     player.goToSlide(target);
   }
   else if (command.type === 'toggleBlank') player.toggleBlank();
+  else if (command.type === 'laser') pointLaserAt(root.querySelector('.stage'), command.at);
 });
 
 // Live updates while presenting (editing on a second screen mid-rehearsal).

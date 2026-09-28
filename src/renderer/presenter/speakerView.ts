@@ -1,6 +1,7 @@
 import type { Deck } from '@shared/deck.js';
 import type { PresentationCommand, PresentationState } from '@shared/ipc.js';
 import { resolveState } from '@shared/timeline.js';
+import { bindLaserPointer } from '../player/keys.js';
 import { revealImagesWhenDecoded } from '../player/imageDecode.js';
 import { freezePreviewVideos, releasePreviewVideos } from '../player/previewPoster.js';
 import { applyStageScale, renderSlide } from '../player/render.js';
@@ -41,6 +42,8 @@ export interface SpeakerView {
   setDeck(deck: Deck | null): void;
   setTheme(css: string): void;
   setState(state: PresentationState): void;
+  /** Turn the laser on or off; while on, pointing at the current slide shows it to the audience. */
+  toggleLaser(): boolean;
   /** Re-scale the previews; call on resize. */
   refresh(): void;
   /** Advance the clocks. Called on a timer internally; exposed for tests. */
@@ -69,6 +72,7 @@ const MARKUP = `
   <footer>
     <button class="speaker-prev">← Previous</button>
     <button class="speaker-blank">Blank</button>
+    <button class="speaker-laser" aria-pressed="false" title="Laser pointer (L)">Laser</button>
     <button class="speaker-next-button primary">Next →</button>
     <button class="speaker-swap">Switch displays</button>
     <button class="speaker-end danger">End show</button>
@@ -163,6 +167,38 @@ export function createSpeakerView(options: SpeakerViewOptions): SpeakerView {
   pick('.speaker-end').addEventListener('click', send({ type: 'exit' }));
   if (swap.isConnected) swap.addEventListener('click', send({ type: 'swapDisplays' }));
 
+  // The laser: while on, the pointer over the current preview becomes a dot
+  // here and, as a fraction of the slide, on the audience screen.
+  const laserButton = pick<HTMLButtonElement>('.speaker-laser');
+  const laser = bindLaserPointer(currentHost);
+  let laserOn = false;
+  let laserShown = false;
+  const hideLaser = () => {
+    laser.setVisible(false);
+    if (laserShown) onCommand({ type: 'laser', at: null });
+    laserShown = false;
+  };
+  const onLaserMove = (event: MouseEvent) => {
+    const stage = currentHost.querySelector('.stage');
+    if (!laserOn || !stage) return;
+    const r = stage.getBoundingClientRect();
+    const x = (event.clientX - r.left) / r.width;
+    const y = (event.clientY - r.top) / r.height;
+    if (x < 0 || x > 1 || y < 0 || y > 1) return hideLaser();
+    laser.setVisible(true);
+    laserShown = true;
+    onCommand({ type: 'laser', at: { x, y } });
+  };
+  currentHost.addEventListener('mousemove', onLaserMove);
+  currentHost.addEventListener('mouseleave', hideLaser);
+  const toggleLaser = () => {
+    laserOn = !laserOn;
+    laserButton.setAttribute('aria-pressed', String(laserOn));
+    if (!laserOn) hideLaser();
+    return laserOn;
+  };
+  laserButton.addEventListener('click', toggleLaser);
+
   tick();
   const clock = setInterval(tick, 250);
 
@@ -183,10 +219,13 @@ export function createSpeakerView(options: SpeakerViewOptions): SpeakerView {
       render();
       tick();
     },
+    toggleLaser,
     refresh: render,
     tick,
     destroy() {
       clearInterval(clock);
+      hideLaser();
+      laser.dispose();
       theme?.remove();
       theme = null;
       host.replaceChildren();
@@ -203,6 +242,7 @@ export function createSpeakerView(options: SpeakerViewOptions): SpeakerView {
 export function bindSpeakerKeys(
   target: Window | HTMLElement,
   onCommand: (command: PresentationCommand) => void,
+  onLaser?: () => void,
 ): () => void {
   const onKey = (event: Event) => {
     const key = (event as KeyboardEvent).key;
@@ -212,6 +252,8 @@ export function bindSpeakerKeys(
       onCommand({ type: 'prev' });
     } else if (key === 'b' || key === 'B') {
       onCommand({ type: 'toggleBlank' });
+    } else if ((key === 'l' || key === 'L') && onLaser) {
+      onLaser();
     } else if (key === 'Escape') {
       onCommand({ type: 'exit' });
     } else {
