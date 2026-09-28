@@ -3,7 +3,7 @@ import {
   chooseAudienceDisplay,
   chooseDisplayById,
   shouldOpenSpeakerView,
-  shouldShowAudienceWindow,
+  shouldWindowPresentation,
   swappedPresentationDisplays,
 } from '../src/main/presentationDisplays.js';
 
@@ -34,13 +34,13 @@ describe('presenter display placement', () => {
     expect(shouldOpenSpeakerView(laptop, laptop, true)).toBe(true);
   });
 
-  it('keeps the audience window hidden when forced Speaker View owns the same display', () => {
+  it('windows both views when forced Speaker View shares the display', () => {
     const laptop = { id: 1 };
     const projector = { id: 2 };
 
-    expect(shouldShowAudienceWindow(laptop, laptop, true)).toBe(false);
-    expect(shouldShowAudienceWindow(projector, laptop, true)).toBe(true);
-    expect(shouldShowAudienceWindow(laptop, laptop, false)).toBe(true);
+    expect(shouldWindowPresentation(laptop, laptop, true)).toBe(true);
+    expect(shouldWindowPresentation(projector, laptop, true)).toBe(false);
+    expect(shouldWindowPresentation(laptop, laptop, false)).toBe(false);
   });
 
   it('switches the audience and presenter roles while both displays remain connected', () => {

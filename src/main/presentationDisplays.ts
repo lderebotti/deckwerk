@@ -28,16 +28,17 @@ export function shouldOpenSpeakerView(
 }
 
 /**
- * A forced one-display Speaker View owns that display. Its audience player
- * still runs as the presentation state source, but must never flash on screen
- * before the speaker controls are ready.
+ * A forced one-display Speaker View shares that display with the audience.
+ * Neither window goes fullscreen then: the audience is an ordinary window a
+ * video call can share (Meet, Zoom, Teams "share a window"), and Speaker View
+ * sits beside it, so the call itself stays reachable too.
  */
-export function shouldShowAudienceWindow(
+export function shouldWindowPresentation(
   audience: { id: number },
   presenter: { id: number },
   openSpeakerView: boolean,
 ): boolean {
-  return !openSpeakerView || audience.id !== presenter.id;
+  return openSpeakerView && audience.id === presenter.id;
 }
 
 /** Resolve the inverse of the active audience/presenter mapping. */

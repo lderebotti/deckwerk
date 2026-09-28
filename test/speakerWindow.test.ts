@@ -63,19 +63,28 @@ describe('Speaker View window visibility', () => {
     expect(electron.created[0].window.setFullScreen).toHaveBeenCalledWith(true);
   });
 
-  it('opens one-display Speaker View directly without flashing the audience view', () => {
-    createPresentWindow(0, electron.display.id, undefined, false);
-    createPresenterWindow(electron.display.id);
+  it('opens one-display Speaker View beside a shareable audience window', () => {
+    createPresentWindow(0, electron.display.id, undefined, true);
+    createPresenterWindow(electron.display.id, false, true);
 
     const [audience, speaker] = electron.created;
+    expect(audience.options).toMatchObject({
+      fullscreen: false,
+      title: 'DeckWerk Audience',
+      width: 1280,
+      height: 720,
+    });
+    // Covered by Speaker View, it must keep painting for the call.
+    expect((audience.options.webPreferences as { backgroundThrottling: boolean })
+      .backgroundThrottling).toBe(false);
     audience.ready();
-    expect(audience.options.fullscreen).toBe(false);
-    expect(audience.window.show).not.toHaveBeenCalled();
+    expect(audience.window.show).toHaveBeenCalledOnce();
     expect(audience.window.setFullScreen).not.toHaveBeenCalled();
 
+    expect(speaker.options.fullscreen).toBe(false);
     speaker.ready();
     expect(speaker.window.show).toHaveBeenCalledOnce();
-    expect(speaker.window.setFullScreen).toHaveBeenCalledWith(true);
+    expect(speaker.window.setFullScreen).not.toHaveBeenCalled();
   });
 
   it('makes Speaker View visible above a fullscreen audience window', () => {

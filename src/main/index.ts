@@ -105,7 +105,7 @@ import {
   chooseAudienceDisplay,
   chooseDisplayById,
   shouldOpenSpeakerView,
-  shouldShowAudienceWindow,
+  shouldWindowPresentation,
   swappedPresentationDisplays,
 } from './presentationDisplays.js';
 
@@ -185,8 +185,9 @@ function openSpeakerWindow(
   state: DeckWindowState,
   displayId: number,
   visibleAboveFullscreen: boolean,
+  windowed = false,
 ): BrowserWindow {
-  const win = createPresenterWindow(displayId, visibleAboveFullscreen);
+  const win = createPresenterWindow(displayId, visibleAboveFullscreen, windowed);
   state.presenter = win;
   attachWindow(state, win);
   win.webContents.once('did-finish-load', () => {
@@ -1010,7 +1011,7 @@ function registerHandlers(): void {
       presenterDisplay,
       options.speakerView,
     );
-    const showAudienceWindow = shouldShowAudienceWindow(
+    const windowed = shouldWindowPresentation(
       audienceDisplay,
       presenterDisplay,
       openSpeakerView,
@@ -1025,12 +1026,12 @@ function registerHandlers(): void {
       slideIndex,
       audienceDisplay.id,
       options.endSlideIndex,
-      showAudienceWindow,
+      windowed,
     );
     state.present = audience;
     attachWindow(state, audience);
     state.presenter = openSpeakerView
-      ? openSpeakerWindow(state, presenterDisplay.id, false)
+      ? openSpeakerWindow(state, presenterDisplay.id, false, windowed)
       : null;
     audience.on('closed', () => {
       if (state.present === audience) state.present = null;

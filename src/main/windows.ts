@@ -209,23 +209,24 @@ export function createPresentWindow(
   cursorSlide = 0,
   displayId?: number,
   endSlideIndex?: number,
-  visible = true,
+  windowed = false,
 ): BrowserWindow {
   const displays = screen.getAllDisplays();
   const primary = screen.getPrimaryDisplay();
   const target = chooseDisplayById(displays, displayId, chooseAudienceDisplay(displays, primary));
 
   const win = new BrowserWindow({
-    x: target.bounds.x,
-    y: target.bounds.y,
-    width: target.bounds.width,
-    height: target.bounds.height,
+    ...(windowed ? windowedBounds(target, 1280) : target.bounds),
     backgroundColor: '#000000',
-    fullscreen: visible,
+    fullscreen: !windowed,
     autoHideMenuBar: true,
+    // A distinct title is what the user picks from a call's window list.
+    title: windowed ? 'DeckWerk Audience' : undefined,
     show: false,
     webPreferences: {
-      backgroundThrottling: !HEADLESS_TEST,
+      // A shared window is usually covered by Speaker View; it must keep
+      // painting or the call shows a frozen slide.
+      backgroundThrottling: !HEADLESS_TEST && !windowed,
       // A hidden window is never mapped, so it gets no compositor frames and
       // every DevTools input event waits out a ~1 s fallback. Offscreen
       // rendering keeps producing frames with nothing on screen.
@@ -240,26 +241,43 @@ export function createPresentWindow(
     },
   });
   openWebLinksExternally(win);
-  if (visible) win.once('ready-to-show', () => showFullscreenWindow(win));
+  win.once('ready-to-show', () => {
+    if (!windowed) showFullscreenWindow(win);
+    else if (!HEADLESS_TEST) win.show();
+  });
   const query = new URLSearchParams({ slide: String(cursorSlide) });
   if (endSlideIndex !== undefined) query.set('endSlide', String(endSlideIndex));
   loadRenderer(win, 'present', `?${query.toString()}`);
   return win;
 }
 
+/** A 16:9 window centred in the display's work area, no wider than `width`. */
+function windowedBounds(
+  display: { workArea: { x: number; y: number; width: number; height: number } },
+  width: number,
+): { x: number; y: number; width: number; height: number } {
+  const area = display.workArea;
+  const w = Math.min(width, area.width, Math.floor((area.height * 16) / 9));
+  const h = Math.round((w * 9) / 16);
+  return {
+    x: area.x + Math.round((area.width - w) / 2),
+    y: area.y + Math.round((area.height - h) / 2),
+    width: w,
+    height: h,
+  };
+}
+
 /** Fullscreen control surface; the audience window remains fullscreen separately. */
 export function createPresenterWindow(
   displayId?: number,
   visibleAboveFullscreen = false,
+  windowed = false,
 ): BrowserWindow {
   const primary = screen.getPrimaryDisplay();
   const target = chooseDisplayById(screen.getAllDisplays(), displayId, primary);
   const win = new BrowserWindow({
-    x: target.bounds.x,
-    y: target.bounds.y,
-    width: target.bounds.width,
-    height: target.bounds.height,
-    fullscreen: true,
+    ...(windowed ? windowedBounds(target, 1100) : target.bounds),
+    fullscreen: !windowed,
     autoHideMenuBar: true,
     backgroundColor: APP_BACKGROUND,
     title: 'Speaker View',
@@ -274,7 +292,9 @@ export function createPresenterWindow(
     },
   });
   win.once('ready-to-show', () => {
-    if (visibleAboveFullscreen) showSpeakerWindowAboveFullscreen(win);
+    if (windowed) {
+      if (!HEADLESS_TEST) { win.show(); win.focus(); }
+    } else if (visibleAboveFullscreen) showSpeakerWindowAboveFullscreen(win);
     else showFullscreenWindow(win);
   });
   loadRenderer(win, 'presenter');
