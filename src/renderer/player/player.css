@@ -246,21 +246,51 @@ body:has(> .laser-pointer:not([hidden])) * { cursor: none !important; }
 .ink-surface .stage,
 .ink-surface .stage * { cursor: crosshair !important; }
 
-/* The pen's colours and widths (ink.ts): Speaker View's footer, and a floating
-   bar on the presenting screen. Drawn in the app chrome's tokens, which the
+/* The pen's colours and widths (ink.ts): Speaker View's footer, and the
+   presenting screen's toolbar. Drawn in the app chrome's tokens, which the
    presenting window does not load, hence the fallbacks. */
 .ink-palette { display: flex; align-items: center; gap: 4px; }
 body:not(.inking) .ink-palette { display: none; }
-.ink-palette.floating {
+
+/* The slideshow toolbar (keys.ts): bottom left, faded in while the mouse moves. */
+.present-toolbar {
   position: fixed;
   left: 16px;
   bottom: 16px;
   z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   padding: 6px;
   border: 1px solid var(--line, #2c2e3d);
   background: var(--panel, #1a1b26);
   box-shadow: var(--shadow, 0 1px 2px rgb(0 0 0 / 40%));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
 }
+.present-toolbar.shown { opacity: 1; pointer-events: auto; }
+.present-toolbar > .ink-palette { margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--line, #2c2e3d); }
+.present-tool {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line, #2c2e3d);
+  border-radius: var(--radius, 0);
+  background: var(--panel, #1a1b26);
+  color: var(--text, #c0caf5);
+  cursor: pointer;
+}
+.present-tool svg { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.present-tool:hover { border-color: var(--muted, #565f89); background: var(--panel-2, #20212e); }
+.present-tool[aria-pressed="true"] { border-color: var(--accent, #7aa2f7); background: var(--accent-soft, rgb(122 162 247 / 12%)); color: var(--accent, #7aa2f7); }
+.present-tool:focus-visible { outline: 1px solid var(--accent, #7aa2f7); outline-offset: 1px; }
+/* The laser hides the cursor everywhere else; the toolbar keeps one to aim with. */
+body:has(> .laser-pointer:not([hidden])) .present-toolbar,
+body:has(> .laser-pointer:not([hidden])) .present-toolbar * { cursor: default !important; }
+body:has(> .present-toolbar:hover) > .laser-pointer { display: none; }
 .ink-palette .ink-width:first-of-type { margin-left: 8px; }
 body.inking .ink-palette button {
   position: relative;

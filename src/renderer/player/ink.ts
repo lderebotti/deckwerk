@@ -190,7 +190,8 @@ export function bindInk(
   };
 }
 
-const onPalette = (event: Event) => event.target instanceof Element && !!event.target.closest('.ink-palette');
+const onPalette = (event: Event) =>
+  event.target instanceof Element && !!event.target.closest('.ink-palette, .present-toolbar');
 
 /**
  * Colour and width buttons for `pen`, shown while the pen is on (player.css).

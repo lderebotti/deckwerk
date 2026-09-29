@@ -53,8 +53,8 @@ describe('pen', () => {
     expect(canvas.width).toBe(1920);
     expect(advanced).toHaveBeenCalledTimes(1);
 
-    // Picking from the floating palette neither draws nor advances.
-    const yellow = document.querySelector<HTMLButtonElement>('.ink-palette.floating [aria-label="Yellow pen"]')!;
+    // Picking from the toolbar's palette neither draws nor advances.
+    const yellow = document.querySelector<HTMLButtonElement>('.present-toolbar [aria-label="Yellow pen"]')!;
     clearInk(stage);
     pointer(yellow, 'pointerdown', 10, 500);
     yellow.click();
@@ -73,7 +73,7 @@ describe('pen', () => {
 
     window.removeEventListener('click', advanced);
     unbind();
-    expect(document.querySelector('.ink-palette')).toBeNull();
+    expect(document.querySelector('.ink-palette, .present-toolbar')).toBeNull();
   });
 
   it('relays Speaker View strokes in slide pixels and keeps them across a build step', () => {
@@ -122,5 +122,56 @@ describe('pen', () => {
     view.setState({ cursor: { slide: 0, step: 0 }, steps: 2, startedAt: 0, slideStartedAt: 0 });
     expect(preview.querySelector('.stage > canvas.ink')).toBeNull();
     view.destroy();
+  });
+
+  it('puts the laser, the pen and slide changes on a toolbar that shows while the mouse moves', () => {
+    vi.useFakeTimers();
+    const onNext = vi.fn();
+    const onPrev = vi.fn();
+    const advanced = vi.fn();
+    const unbind = bindPresentKeys(window, {} as Player, { onNext, onPrev });
+    window.addEventListener('click', advanced);
+    const bar = document.querySelector<HTMLElement>('.present-toolbar')!;
+    const tool = (label: string) => bar.querySelector<HTMLButtonElement>(`[aria-label^="${label}"]`)!;
+    vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue(rect(16, 1000, 300, 40));
+    const move = (x: number, y: number) => pointer(window, 'mousemove', x, y, 0);
+
+    // Hidden until the mouse moves, and gone again once it rests.
+    expect(bar.classList.contains('shown')).toBe(false);
+    move(900, 400);
+    expect(bar.classList.contains('shown')).toBe(true);
+    vi.advanceTimersByTime(3000);
+    expect(bar.classList.contains('shown')).toBe(false);
+
+    // Its buttons act without the click advancing the slide.
+    tool('Next').click();
+    tool('Previous').click();
+    expect([onNext.mock.calls.length, onPrev.mock.calls.length, advanced.mock.calls.length]).toEqual([1, 1, 0]);
+
+    // Laser and pen take turns, and the keys and the buttons agree.
+    tool('Laser').click();
+    expect(tool('Laser').getAttribute('aria-pressed')).toBe('true');
+    expect(document.querySelector<HTMLElement>('.laser-pointer')!.hidden).toBe(false);
+    key('p');
+    expect(tool('Laser').getAttribute('aria-pressed')).toBe('false');
+    expect(tool('Pen').getAttribute('aria-pressed')).toBe('true');
+    expect(document.body.classList.contains('inking')).toBe(true);
+
+    // With a tool in hand, moving over the slide leaves the toolbar away;
+    // coming to its corner brings it back.
+    move(900, 400);
+    expect(bar.classList.contains('shown')).toBe(false);
+    move(200, 990);
+    expect(bar.classList.contains('shown')).toBe(true);
+    // A press on the toolbar never starts a stroke.
+    pointer(tool('Pen'), 'pointerdown', 100, 1010);
+    expect(document.querySelector('canvas.ink')).toBeNull();
+
+    key('Escape');
+    expect(tool('Pen').getAttribute('aria-pressed')).toBe('false');
+    window.removeEventListener('click', advanced);
+    unbind();
+    expect(document.querySelector('.present-toolbar')).toBeNull();
+    vi.useRealTimers();
   });
 });
