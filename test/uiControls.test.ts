@@ -271,8 +271,19 @@ describe('shared editor controls', () => {
     checkbox.checked = true;
     [...dialog.querySelectorAll<HTMLButtonElement>('button')]
       .find((button) => button.textContent === 'Export')!.click();
-    await expect(result).resolves.toEqual({ includeEachBuildStage: true });
+    await expect(result).resolves.toEqual({ includeEachBuildStage: true, includeInk: true });
     expect(document.querySelector('[role="dialog"]')).toBeNull();
+
+    // A deck with kept presentation ink is also asked whether to include it.
+    const withInk = showPdfExportDialog({ hasInk: true });
+    const inkDialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
+    const [, ink] = inkDialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+    expect(ink.closest('label')!.textContent).toBe('Include saved ink');
+    expect(ink.checked).toBe(true);
+    ink.checked = false;
+    [...inkDialog.querySelectorAll<HTMLButtonElement>('button')]
+      .find((button) => button.textContent === 'Export')!.click();
+    await expect(withInk).resolves.toEqual({ includeEachBuildStage: false, includeInk: false });
 
     const editor = readFileSync(join(process.cwd(), 'src/renderer/editor/main.ts'), 'utf8');
     expect(editor).toContain("mode: choice.includeEachBuildStage ? 'every' : 'final'");

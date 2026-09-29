@@ -3672,6 +3672,11 @@ select.panel-action-select {
 .shape-menu-item:hover { background: var(--accent); color: #fff; border-color: transparent; }
 .shape-menu-item:hover svg { color: #fff; }
 .shape-menu-item svg { flex: none; color: var(--muted); }
+/* A checkbox item's tick sits at the far end, so its label lines up with plain items. */
+.shape-menu-item .shape-menu-check { order: 1; margin-left: auto; }
+.shape-menu-item[aria-checked="false"] .shape-menu-check { visibility: hidden; }
+.shape-menu-item[aria-checked="true"] .shape-menu-check { color: var(--accent); }
+.shape-menu-item[aria-checked]:hover .shape-menu-check { color: #fff; }
 
 .table-picker-menu {
   min-width: 0;

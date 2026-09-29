@@ -32,7 +32,7 @@ import { createToolbarPicker, createToolbarSplitButton } from './exportPicker.js
 import { showPdfExportDialog } from './pdfExportDialog.js';
 import { showWebExportDialog } from './webExportDialog.js';
 import { showKeepInkDialog } from './inkDialog.js';
-import { addInk } from '@shared/ink.js';
+import { addInk, hasInk } from '@shared/ink.js';
 import { makePanelResizable } from './panelResize.js';
 import { DelayedOperationProgress, type OperationHandle } from './operationProgress.js';
 import { DesignWorkspace } from './designWorkspace.js';
@@ -493,7 +493,17 @@ function buildToolbar(): void {
     createToolbarSplitButton(
       'Present',
       () => void startPresentation(),
-      [{ label: 'Present in Speaker View', action: () => void startPresentation(true) }],
+      [
+        { label: 'Present in Speaker View', action: () => void startPresentation(true) },
+        {
+          label: 'Show saved ink',
+          checked: () => presentShowsInk,
+          action: () => {
+            presentShowsInk = !presentShowsInk;
+            try { localStorage.setItem(PRESENT_SHOWS_INK_KEY, String(presentShowsInk)); } catch { /* not remembered */ }
+          },
+        },
+      ],
       { variant: 'primary', menuLabel: 'Presentation options' },
     ),
   );
@@ -502,6 +512,13 @@ function buildToolbar(): void {
   syncDeckNameLabel();
   installResponsiveToolbar(bar);
 }
+
+// Whether a show includes ink kept from earlier shows; a per-author preference,
+// so it lives in this window's storage rather than in the deck.
+const PRESENT_SHOWS_INK_KEY = 'deckwerk.presentShowsInk';
+let presentShowsInk = (() => {
+  try { return localStorage.getItem(PRESENT_SHOWS_INK_KEY) !== 'false'; } catch { return true; }
+})();
 
 async function startPresentation(speakerView = false): Promise<void> {
   await runOperation('Preparing presentation…', async (operation) => {
@@ -528,6 +545,7 @@ async function startPresentation(speakerView = false): Promise<void> {
       await window.api.present(range?.start ?? slideIndex, {
         speakerView,
         endSlideIndex: range?.end,
+        hideInk: !presentShowsInk,
       });
     } finally {
       if (store.get().dirty) scheduleSave();
@@ -537,7 +555,7 @@ async function startPresentation(speakerView = false): Promise<void> {
 }
 
 async function exportWeb(): Promise<void> {
-  const choice = await showWebExportDialog();
+  const choice = await showWebExportDialog({ hasInk: hasInk(store.get().deck) });
   if (!choice) return;
   try {
     const dir = await runOperation('Preparing web export…', async (operation) => {
@@ -545,7 +563,7 @@ async function exportWeb(): Promise<void> {
       await cssEditor.flush();
       await save();
       operation.update('Waiting for an export folder');
-      return window.api.exportBundle({ quality: choice.quality }, operation.id);
+      return window.api.exportBundle({ quality: choice.quality, hideInk: !choice.includeInk }, operation.id);
     });
     if (dir) setStatusMessage(`Exported to ${dir}`);
   } catch (err) {
@@ -554,7 +572,7 @@ async function exportWeb(): Promise<void> {
 }
 
 async function exportPdf(): Promise<void> {
-  const choice = await showPdfExportDialog();
+  const choice = await showPdfExportDialog({ hasInk: hasInk(store.get().deck) });
   if (!choice) return;
   try {
     const result = await runOperation('Preparing PDF export…', async (operation) => {
@@ -564,6 +582,7 @@ async function exportPdf(): Promise<void> {
       operation.update('Waiting for a PDF destination');
       return window.api.exportPdf({
         mode: choice.includeEachBuildStage ? 'every' : 'final',
+        hideInk: !choice.includeInk,
       }, operation.id);
     });
     if (result) setStatusMessage(`PDF saved to ${result}`);

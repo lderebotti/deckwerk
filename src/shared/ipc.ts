@@ -158,6 +158,8 @@ export interface PresentOptions {
   speakerView?: boolean;
   /** Inclusive last slide when presenting a multi-slide rail selection. */
   endSlideIndex?: number;
+  /** Leave the ink kept from earlier shows off the slides. */
+  hideInk?: boolean;
 }
 
 export type PdfBuildMode = 'initial' | 'final' | 'every';
@@ -173,11 +175,15 @@ export type WebExportQuality = 'original' | 'balanced' | 'compact';
 
 export interface WebExportRequest {
   quality?: WebExportQuality;
+  /** Leave the ink kept from presentations off the slides. */
+  hideInk?: boolean;
 }
 
 export interface PdfExportRequest {
   mode?: PdfBuildMode;
   includeHidden?: boolean;
+  /** Leave the ink kept from presentations off the slides. */
+  hideInk?: boolean;
 }
 
 /**

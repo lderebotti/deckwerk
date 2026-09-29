@@ -35,6 +35,8 @@ export interface DeckWindowState {
   presenter: BrowserWindow | null;
   presentationState: PresentationState | null;
   presentationDisplays: { audienceDisplayId: number; presenterDisplayId: number } | null;
+  /** The open presentation leaves kept ink off, in both of its windows. */
+  presentHideInk?: boolean;
   swappingPresentationDisplays: boolean;
   trim: BrowserWindow | null;
   raster: BrowserWindow | null;

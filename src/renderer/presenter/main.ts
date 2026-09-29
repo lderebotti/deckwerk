@@ -2,6 +2,7 @@ import '../player/player.css';
 import '../appChrome.css';
 import './presenter.css';
 import type { DeckSession } from '@shared/ipc.js';
+import { withoutInk } from '@shared/ink.js';
 import { bindSpeakerKeys, createSpeakerView } from './speakerView.js';
 import { installWindowApiPosterProvider } from '../player/previewPosterProvider.js';
 
@@ -20,9 +21,12 @@ const view = createSpeakerView({
   onCommand: (command) => window.api.sendPresentCommand(command),
 });
 
+// Its previews match an audience presenting without kept ink (PresentOptions.hideInk).
+const hideInk = new URLSearchParams(location.search).has('hideInk');
+
 async function load(session: DeckSession): Promise<void> {
   view.setTheme(await window.api.loadTheme());
-  view.setDeck(session.deck);
+  view.setDeck(hideInk ? withoutInk(session.deck) : session.deck);
 }
 
 window.api.onDeckState((session) => void load(session));

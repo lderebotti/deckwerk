@@ -85,3 +85,28 @@ describe('ink during the show', () => {
     expect(takeInk()).toEqual([]);
   });
 });
+
+describe('presenting and exporting without ink', () => {
+  it('leaves kept ink and the builds that act on it out, and nothing else', async () => {
+    const { hasInk, withoutInk } = await import('../src/shared/ink.js');
+    const deck = emptyDeck('Talk');
+    expect(withoutInk(deck)).toBe(deck);
+    const slide = deck.slides[0];
+    const other = { ...inkShape({ ...red, points: [{ x: 50, y: 50 }] }, 1)!, id: 'drawn-by-hand', ink: undefined };
+    slide.elements = [other];
+    addInk(deck, [{ slideId: slide.id, strokes: [{ ...red, points: [{ x: 1, y: 1 }] }] }]);
+    const ink = slide.elements.at(-1)!;
+    slide.timeline = [
+      { id: 'show-ink', trigger: { on: 'click', ref: null, delay: 0 }, action: { type: 'appear', target: ink.id, value: null } },
+      { id: 'show-other', trigger: { on: 'click', ref: null, delay: 0 }, action: { type: 'appear', target: other.id, value: null } },
+    ];
+    expect(hasInk(deck)).toBe(true);
+
+    const clean = withoutInk(deck);
+    expect(hasInk(clean)).toBe(false);
+    expect(clean.slides[0].elements.map((e) => e.id)).toEqual(['drawn-by-hand']);
+    expect(clean.slides[0].timeline.map((t) => t.id)).toEqual(['show-other']);
+    // The deck itself is untouched.
+    expect(hasInk(deck)).toBe(true);
+  });
+});

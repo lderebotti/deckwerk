@@ -1,6 +1,8 @@
 export interface ToolbarPickerOption {
   label: string;
   action: () => void;
+  /** Makes the option a checkbox item that reads its state when the menu opens. */
+  checked?: () => boolean;
 }
 
 export interface ToolbarPickerSection {
@@ -9,6 +11,16 @@ export interface ToolbarPickerSection {
 }
 
 export type ToolbarPickerEntry = ToolbarPickerOption | ToolbarPickerSection;
+
+/** A menu item's role, and for a checkbox item its state and tick. */
+function markChecked(item: HTMLButtonElement, option: ToolbarPickerOption): void {
+  item.setAttribute('role', option.checked ? 'menuitemcheckbox' : 'menuitem');
+  if (!option.checked) return;
+  item.setAttribute('aria-checked', String(option.checked()));
+  item.insertAdjacentHTML('afterbegin', '<svg class="shape-menu-check" viewBox="0 0 12 12" width="12" height="12"'
+    + ' aria-hidden="true"><path d="M2.5 6.5l2.5 2.5 4.5-5.5" fill="none" stroke="currentColor"'
+    + ' stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+}
 
 export interface ToolbarSplitButtonConfig {
   deckOnly?: boolean;
@@ -82,8 +94,8 @@ export function createToolbarPicker(
       const item = document.createElement('button');
       item.type = 'button';
       item.className = 'shape-menu-item';
-      item.setAttribute('role', 'menuitem');
       item.textContent = option.label;
+      markChecked(item, option);
       item.addEventListener('click', () => {
         close();
         trigger.blur();
@@ -169,8 +181,8 @@ export function createToolbarSplitButton(
       const item = document.createElement('button');
       item.type = 'button';
       item.className = 'shape-menu-item';
-      item.setAttribute('role', 'menuitem');
       item.textContent = option.label;
+      markChecked(item, option);
       item.addEventListener('click', () => {
         close();
         trigger.blur();

@@ -109,3 +109,32 @@ export function addInk(deck: Deck, ink: SlideInk[]): number {
   }
   return added;
 }
+
+const isInk = (e: SlideElement) => e.type === 'shape' && e.ink === true;
+
+/** Whether any slide carries ink kept from a presentation. */
+export function hasInk(deck: Deck): boolean {
+  return deck.slides.some((slide) => slide.elements.some(isInk));
+}
+
+/**
+ * The deck with its kept ink left out, for a show or an export without it.
+ * Builds that act on an ink stroke go with it. Returns `deck` itself when it
+ * has no ink.
+ */
+export function withoutInk(deck: Deck): Deck {
+  if (!hasInk(deck)) return deck;
+  return {
+    ...deck,
+    slides: deck.slides.map((slide) => {
+      const ink = new Set(slide.elements.filter(isInk).map((e) => e.id));
+      if (!ink.size) return slide;
+      return {
+        ...slide,
+        elements: slide.elements.filter((e) => !ink.has(e.id)),
+        timeline: slide.timeline.filter((entry) =>
+          !ink.has(entry.action.target) && !(entry.trigger.ref && ink.has(entry.trigger.ref))),
+      };
+    }),
+  };
+}

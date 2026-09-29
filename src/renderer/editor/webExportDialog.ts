@@ -1,7 +1,9 @@
 import type { WebExportQuality } from '@shared/ipc.js';
+import { inkOption } from './pdfExportDialog.js';
 
 export interface WebExportChoice {
   quality: WebExportQuality;
+  includeInk: boolean;
 }
 
 const QUALITIES: Array<{ value: WebExportQuality; label: string; detail: string }> = [
@@ -27,7 +29,7 @@ const QUALITIES: Array<{ value: WebExportQuality; label: string; detail: string 
 const STORAGE_KEY = 'deckwerk.webExport.quality';
 
 /** Ask how much to compress the media before choosing where the export goes. */
-export function showWebExportDialog(): Promise<WebExportChoice | null> {
+export function showWebExportDialog(options: { hasInk?: boolean } = {}): Promise<WebExportChoice | null> {
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = 'workflow-overlay';
@@ -63,6 +65,7 @@ export function showWebExportDialog(): Promise<WebExportChoice | null> {
     };
     describe();
     select.addEventListener('change', describe);
+    const ink = inkOption();
 
     const actions = document.createElement('div');
     actions.className = 'workflow-actions';
@@ -90,7 +93,7 @@ export function showWebExportDialog(): Promise<WebExportChoice | null> {
       } catch {
         // Storage can be unavailable; the choice simply is not remembered.
       }
-      finish({ quality });
+      finish({ quality, includeInk: ink.checkbox.checked });
     });
     overlay.addEventListener('pointerdown', (event) => {
       if (event.target === overlay) finish(null);
@@ -100,7 +103,7 @@ export function showWebExportDialog(): Promise<WebExportChoice | null> {
       if (event.key === 'Enter' && event.target === select) submit.click();
     });
 
-    dialog.append(title, field, detail, actions);
+    dialog.append(title, field, detail, ...(options.hasInk ? [ink.option] : []), actions);
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
     select.focus();

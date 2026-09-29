@@ -8,6 +8,7 @@ import {
 } from '@shared/presentationRange.js';
 import { bindPresentKeys, pointLaserAt } from '../player/keys.js';
 import { clearInk, drawInk, takeInk } from '../player/ink.js';
+import { withoutInk } from '@shared/ink.js';
 import { Player } from '../player/player.js';
 import { eventOnInteractiveWeb, slideLinkFromEvent } from '../player/links.js';
 import { selectionPreventsAdvance } from '../player/presentationPointer.js';
@@ -26,6 +27,10 @@ let session: DeckSession | null = null;
 let range: PresentationRange | null = null;
 let themeLink: HTMLStyleElement | null = null;
 const startedAt = Date.now();
+// Presenting without the ink kept from earlier shows (PresentOptions.hideInk).
+const hideInk = new URLSearchParams(location.search).has('hideInk');
+const presentable = (next: DeckSession): DeckSession =>
+  hideInk ? { ...next, deck: withoutInk(next.deck) } : next;
 let slideStartedAt = startedAt;
 let timedSlide = -1;
 
@@ -148,9 +153,9 @@ window.addEventListener('beforeunload', () => {
 
 // Live updates while presenting (editing on a second screen mid-rehearsal).
 window.api.onDeckState((nextSession) => {
-  session = nextSession;
+  session = presentable(nextSession);
   void applyTheme();
-  start(nextSession);
+  start(session);
 });
 
 // Pull the current deck on load, rather than waiting for a broadcast that may
@@ -158,7 +163,7 @@ window.api.onDeckState((nextSession) => {
 void (async () => {
   const initialSession = await window.api.getDeck();
   if (!initialSession) return;
-  session = initialSession;
+  session = presentable(initialSession);
   await applyTheme();
-  start(initialSession);
+  start(session);
 })();

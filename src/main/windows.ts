@@ -210,6 +210,7 @@ export function createPresentWindow(
   displayId?: number,
   endSlideIndex?: number,
   visible = true,
+  hideInk = false,
 ): BrowserWindow {
   const displays = screen.getAllDisplays();
   const primary = screen.getPrimaryDisplay();
@@ -243,6 +244,7 @@ export function createPresentWindow(
   if (visible) win.once('ready-to-show', () => showFullscreenWindow(win));
   const query = new URLSearchParams({ slide: String(cursorSlide) });
   if (endSlideIndex !== undefined) query.set('endSlide', String(endSlideIndex));
+  if (hideInk) query.set('hideInk', '1');
   loadRenderer(win, 'present', `?${query.toString()}`);
   return win;
 }
@@ -251,6 +253,7 @@ export function createPresentWindow(
 export function createPresenterWindow(
   displayId?: number,
   visibleAboveFullscreen = false,
+  hideInk = false,
 ): BrowserWindow {
   const primary = screen.getPrimaryDisplay();
   const target = chooseDisplayById(screen.getAllDisplays(), displayId, primary);
@@ -277,7 +280,7 @@ export function createPresenterWindow(
     if (visibleAboveFullscreen) showSpeakerWindowAboveFullscreen(win);
     else showFullscreenWindow(win);
   });
-  loadRenderer(win, 'presenter');
+  loadRenderer(win, 'presenter', hideInk ? '?hideInk=1' : undefined);
   return win;
 }
 

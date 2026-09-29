@@ -7,7 +7,7 @@ import { BrowserWindow, app, clipboard, ipcMain, screen, shell } from 'electron'
 import type { Display, IpcMainInvokeEvent, WebContents } from 'electron';
 import { parseDeck, type Deck } from '@shared/deck.js';
 import type { DeckHistoryDocument } from '@shared/deckHistory.js';
-import type { SlideInk } from '@shared/ink.js';
+import { withoutInk, type SlideInk } from '@shared/ink.js';
 import {
   CLIPBOARD_FORMAT,
   type ClipboardReadResult,
@@ -187,7 +187,7 @@ function openSpeakerWindow(
   displayId: number,
   visibleAboveFullscreen: boolean,
 ): BrowserWindow {
-  const win = createPresenterWindow(displayId, visibleAboveFullscreen);
+  const win = createPresenterWindow(displayId, visibleAboveFullscreen, state.presentHideInk);
   state.presenter = win;
   attachWindow(state, win);
   win.webContents.once('did-finish-load', () => {
@@ -1018,6 +1018,7 @@ function registerHandlers(): void {
     );
 
     state.presentationState = null;
+    state.presentHideInk = options.hideInk === true;
     state.presentationDisplays = {
       audienceDisplayId: audienceDisplay.id,
       presenterDisplayId: presenterDisplay.id,
@@ -1027,6 +1028,7 @@ function registerHandlers(): void {
       audienceDisplay.id,
       options.endSlideIndex,
       showAudienceWindow,
+      state.presentHideInk,
     );
     state.present = audience;
     attachWindow(state, audience);
@@ -1168,10 +1170,11 @@ function registerHandlers(): void {
     });
     if (target.canceled || !target.filePath) return null;
     const dir = deckFolderPath(target.filePath);
-    await exportDeck(s.dir, s.deck, dir, (message, ratio) => {
+    const deck = request.hideInk ? withoutInk(s.deck) : s.deck;
+    await exportDeck(s.dir, deck, dir, (message, ratio) => {
       reportOperation(event, operationId, message, ratio);
     }, { quality: request.quality ?? 'original', dropSkipped: true });
-    await writeExportThumbnail(s.dir, s.deck, dir, (message) => {
+    await writeExportThumbnail(s.dir, deck, dir, (message) => {
       reportOperation(event, operationId, message, null);
     });
     return dir;
@@ -1208,7 +1211,8 @@ function registerHandlers(): void {
       };
       ipcMain.on(IPC.exportPdfReady, listener);
     });
-    const query = `?job=${encodeURIComponent(jobId)}&mode=${mode}&includeHidden=${includeHidden ? '1' : '0'}`;
+    const query = `?job=${encodeURIComponent(jobId)}&mode=${mode}&includeHidden=${includeHidden ? '1' : '0'}`
+      + (request.hideInk ? '&hideInk=1' : '');
     const printWindow = createPdfWindow(query);
     // The print page asks for "the" deck the same way any window does, so it
     // has to belong to the document being exported.

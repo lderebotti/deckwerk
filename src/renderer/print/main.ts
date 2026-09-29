@@ -2,6 +2,7 @@ import '../player/player.css';
 import './print.css';
 import { buildPrintPages, printPageRule } from './pages.js';
 import { waitForPdfDocument } from './readiness.js';
+import { withoutInk } from '@shared/ink.js';
 
 const params = new URLSearchParams(location.search);
 const mode = params.get('mode') === 'initial' || params.get('mode') === 'every'
@@ -18,7 +19,7 @@ void (async () => {
   theme.textContent = await window.api.loadTheme();
   document.head.appendChild(theme);
 
-  const { deck } = session;
+  const deck = params.has('hideInk') ? withoutInk(session.deck) : session.deck;
   const pageRule = document.createElement('style');
   pageRule.textContent = printPageRule(deck);
   document.head.appendChild(pageRule);
