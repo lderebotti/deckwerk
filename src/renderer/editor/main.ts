@@ -497,10 +497,11 @@ function buildToolbar(): void {
         { label: 'Present in Speaker View', action: () => void startPresentation(true) },
         {
           label: 'Show saved ink',
-          checked: () => presentShowsInk,
+          checked: () => showsInk,
           action: () => {
-            presentShowsInk = !presentShowsInk;
-            try { localStorage.setItem(PRESENT_SHOWS_INK_KEY, String(presentShowsInk)); } catch { /* not remembered */ }
+            showsInk = !showsInk;
+            try { localStorage.setItem(SHOWS_INK_KEY, String(showsInk)); } catch { /* not remembered */ }
+            applyInkVisibility();
           },
         },
       ],
@@ -513,12 +514,21 @@ function buildToolbar(): void {
   installResponsiveToolbar(bar);
 }
 
-// Whether a show includes ink kept from earlier shows; a per-author preference,
-// so it lives in this window's storage rather than in the deck.
-const PRESENT_SHOWS_INK_KEY = 'deckwerk.presentShowsInk';
-let presentShowsInk = (() => {
-  try { return localStorage.getItem(PRESENT_SHOWS_INK_KEY) !== 'false'; } catch { return true; }
+// Whether ink kept from earlier shows is shown, here and when presenting; a
+// per-author preference, so it lives in this window's storage, not the deck.
+const SHOWS_INK_KEY = 'deckwerk.presentShowsInk';
+let showsInk = (() => {
+  try { return localStorage.getItem(SHOWS_INK_KEY) !== 'false'; } catch { return true; }
 })();
+/** Hide or show kept ink on the editor's surfaces; hidden ink cannot stay selected. */
+function applyInkVisibility(): void {
+  document.body.classList.toggle('hide-ink', !showsInk);
+  if (showsInk) return;
+  const selected = store.selectedElements();
+  const visible = selected.filter((e) => !(e.type === 'shape' && e.ink));
+  // ponytail: Select All still takes hidden ink along; filter it there if that bites.
+  if (visible.length !== selected.length) store.select(visible.map((e) => e.id));
+}
 
 async function startPresentation(speakerView = false): Promise<void> {
   await runOperation('Preparing presentation…', async (operation) => {
@@ -545,7 +555,7 @@ async function startPresentation(speakerView = false): Promise<void> {
       await window.api.present(range?.start ?? slideIndex, {
         speakerView,
         endSlideIndex: range?.end,
-        hideInk: !presentShowsInk,
+        hideInk: !showsInk,
       });
     } finally {
       if (store.get().dirty) scheduleSave();
@@ -1198,6 +1208,7 @@ function syncThemeStylesheet(): void {
 }
 syncSlideSelectionContext();
 renderStatus();
+applyInkVisibility();
 
 // A trimmed file comes back from the trim window; relink the element that
 // requested it so the new clip lands in the deck with no manual step.

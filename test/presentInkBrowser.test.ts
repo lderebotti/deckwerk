@@ -9,7 +9,8 @@ import { launchDesktopEditor, type DesktopEditor } from './support/desktopEditor
  * Pen ink survives the show: drawn in the real audience window with real
  * input, handed to the editor as the window closes, and kept as ink shapes
  * after the author answers the editor's prompt. The next show includes it
- * unless the Present menu's "Show saved ink" is unchecked.
+ * unless the Present menu's "Show saved ink" is unchecked, which hides it in
+ * the editor too.
  */
 
 let app: DesktopEditor | null = null;
@@ -102,9 +103,18 @@ describe.skipIf(!electronBinary)('presentation ink', () => {
     };
     expect(await shows()).toBe(true);
     await endShow();
-    // ...and, with "Show saved ink" unchecked in the Present menu, does not.
+    /** Where the editor paints the kept stroke, and whether it is visible there. */
+    const editorShows = () => app!.cdp.evaluate<Record<string, boolean>>(`Object.fromEntries(
+      ['#canvas', '#rail'].map((surface) => {
+        const node = document.querySelector(surface + ' [data-element-id="${kept[0].id}"]');
+        return [surface, Boolean(node) && getComputedStyle(node).display !== 'none'];
+      }))`);
+    expect(await editorShows()).toEqual({ '#canvas': true, '#rail': true });
+    // ...and, with "Show saved ink" unchecked in the Present menu, neither the
+    // show nor the editor does.
     await app.cdp.click('[aria-label="Presentation options"]');
     await app.cdp.clickByText('.shape-menu-item', 'Show saved ink');
+    expect(await editorShows()).toEqual({ '#canvas': false, '#rail': false });
     expect(await shows()).toBe(false);
     await endShow();
     await app.cdp.click('[aria-label="Presentation options"]');

@@ -237,6 +237,8 @@ export function renderElement(
   node.className = ['element', `element-${el.type}`, ...el.class].join(' ');
   node.dataset.elementId = el.id;
   node.dataset.elementType = el.type;
+  // Kept presentation ink, which the editor can hide (body.hide-ink).
+  if (el.type === 'shape' && el.ink) node.dataset.ink = 'true';
 
   applyElementBoxStyles(node, el);
 
