@@ -31,6 +31,8 @@ import { createShapeInsertPicker, createTableInsertPicker, insertText } from './
 import { createToolbarPicker, createToolbarSplitButton } from './exportPicker.js';
 import { showPdfExportDialog } from './pdfExportDialog.js';
 import { showWebExportDialog } from './webExportDialog.js';
+import { showKeepInkDialog } from './inkDialog.js';
+import { addInk } from '@shared/ink.js';
 import { makePanelResizable } from './panelResize.js';
 import { DelayedOperationProgress, type OperationHandle } from './operationProgress.js';
 import { DesignWorkspace } from './designWorkspace.js';
@@ -1201,6 +1203,17 @@ window.api.onTrimDone((result) => {
     }
   });
   void save();
+});
+
+// A presentation that ended with pen ink on it: offer to keep the ink as
+// shapes on its slides, as one undoable change.
+window.api.onPresentInk(async (ink) => {
+  const strokes = ink.reduce((n, slide) => n + slide.strokes.length, 0);
+  if (!strokes || !(await showKeepInkDialog(strokes, ink.length))) return;
+  let added = 0;
+  store.commit((deck) => { added = addInk(deck, ink); }, { label: 'Add ink from presentation' });
+  if (added) void save();
+  else setStatusMessage('The slides the ink was drawn on are no longer in the deck.');
 });
 
 // Raster paint writes a new PNG and reports the exact element that launched

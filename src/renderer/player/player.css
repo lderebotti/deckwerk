@@ -234,3 +234,62 @@
 .laser-pointer[hidden],
 body:has(.stage.blanked) > .laser-pointer { display: none; }
 body:has(> .laser-pointer:not([hidden])) * { cursor: none !important; }
+
+/* The pen (ink.ts): ink over the slide, and a crosshair over the slide it draws on. */
+.stage > canvas.ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.ink-surface .stage,
+.ink-surface .stage * { cursor: crosshair !important; }
+
+/* The pen's colours and widths (ink.ts): Speaker View's footer, and a floating
+   bar on the presenting screen. Drawn in the app chrome's tokens, which the
+   presenting window does not load, hence the fallbacks. */
+.ink-palette { display: flex; align-items: center; gap: 4px; }
+body:not(.inking) .ink-palette { display: none; }
+.ink-palette.floating {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2147483646;
+  padding: 6px;
+  border: 1px solid var(--line, #2c2e3d);
+  background: var(--panel, #1a1b26);
+  box-shadow: var(--shadow, 0 1px 2px rgb(0 0 0 / 40%));
+}
+.ink-palette .ink-width:first-of-type { margin-left: 8px; }
+body.inking .ink-palette button {
+  position: relative;
+  width: 23px;
+  height: 23px;
+  padding: 2px;
+  border: 1px solid var(--line, #2c2e3d);
+  border-radius: 5px;
+  background: var(--panel, #1a1b26);
+  cursor: pointer;
+}
+.ink-palette .ink-swatch::after,
+.ink-palette .ink-width::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 2px;
+  background: var(--ink);
+}
+.ink-palette .ink-width::after {
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: var(--ink);
+  height: var(--ink);
+  border-radius: 50%;
+  background: var(--text, #c0caf5);
+  transform: translate(-50%, -50%);
+}
+body.inking .ink-palette button:hover { border-color: var(--muted, #565f89); background-color: var(--panel-2, #20212e); }
+body.inking .ink-palette button[aria-pressed="true"] { border-color: var(--accent, #7aa2f7); box-shadow: 0 0 0 1px var(--accent, #7aa2f7); }
+.ink-palette button:focus-visible { outline: 1px solid var(--accent, #7aa2f7); outline-offset: 1px; }

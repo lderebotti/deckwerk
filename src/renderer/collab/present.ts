@@ -13,6 +13,7 @@ import {
 import type { Cursor } from '@shared/timeline.js';
 import { Player } from '../player/player.js';
 import { bindPresentKeys, pointLaserAt } from '../player/keys.js';
+import { clearInk, drawInk } from '../player/ink.js';
 import { bindSpeakerKeys, createSpeakerView, type SpeakerView } from '../presenter/speakerView.js';
 import { CollabBridge } from './collabBridge.js';
 import { createConnectionNotice } from './connectionNotice.js';
@@ -316,7 +317,7 @@ function mountSpeaker(): void {
   if (themeCss) speaker.setTheme(themeCss);
   if (deck) speaker.setDeck(deck);
   speaker.setState(lastState);
-  unbindSpeakerKeys = bindSpeakerKeys(window, sendCommand, () => speaker?.toggleLaser());
+  unbindSpeakerKeys = bindSpeakerKeys(window, sendCommand, speaker ?? undefined);
   retitle();
   // Announce, so an audience surface that is already running answers with the
   // deck and the live cursor rather than leaving this one blank until the next
@@ -430,6 +431,8 @@ bus?.subscribe((message) => {
   else if (command.type === 'prev') retreat();
   else if (command.type === 'toggleBlank') player.toggleBlank();
   else if (command.type === 'laser') pointLaserAt(stageHost.querySelector('.stage'), command.at);
+  else if (command.type === 'ink') drawInk(stageHost.querySelector('.stage'), command);
+  else if (command.type === 'clearInk') clearInk(stageHost.querySelector('.stage'));
   else if (command.type === 'goTo') {
     player.goToSlide(range
       ? Math.min(Math.max(command.slide, range.start), range.end)

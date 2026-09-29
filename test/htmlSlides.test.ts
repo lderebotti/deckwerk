@@ -294,7 +294,7 @@ describe('measured nodes become deck objects', () => {
       tag: 'div',
       dataset: {
         element: 'shape', shape: 'arrow', stroke: '#111111', strokeWidth: '6',
-        arrowEnd: 'true', control: '950,300',
+        arrowEnd: 'true', control: '950,300', ink: 'true',
       },
       style: {
         border: '6px solid #111111',
@@ -308,6 +308,7 @@ describe('measured nodes become deck objects', () => {
       arrowEnd: true, arrowStart: false,
     });
     expect(shape.control).toEqual({ x: 950, y: 300 });
+    expect(shape.ink).toBe(true);
     expect(shape.style).toEqual({ 'box-shadow': '0 8px 24px #0008' });
   });
 
@@ -460,9 +461,10 @@ describe('deck objects become authored HTML', () => {
       id: 'arrow', type: 'shape', x: 200, y: 300, w: 400, h: 120, rot: 15, z: 2,
       opacity: 1, class: [], style: {}, shape: 'arrow', fill: null, stroke: '#111111',
       strokeWidth: 6, radius: 0, path: null, pathSize: null, arrowStart: false,
-      arrowEnd: true, control: { x: 400, y: 240 },
+      arrowEnd: true, control: { x: 400, y: 240 }, ink: true,
     }];
     const html = slideToHtml(parseDeck(deck).slides[0], { w: 1920, h: 1080 });
+    expect(html).toContain('data-ink="true"');
 
     expect(html).toContain('data-element="shape"');
     expect(html).toContain('data-shape="arrow"');

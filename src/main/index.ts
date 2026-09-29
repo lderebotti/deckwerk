@@ -7,6 +7,7 @@ import { BrowserWindow, app, clipboard, ipcMain, screen, shell } from 'electron'
 import type { Display, IpcMainInvokeEvent, WebContents } from 'electron';
 import { parseDeck, type Deck } from '@shared/deck.js';
 import type { DeckHistoryDocument } from '@shared/deckHistory.js';
+import type { SlideInk } from '@shared/ink.js';
 import {
   CLIPBOARD_FORMAT,
   type ClipboardReadResult,
@@ -1051,6 +1052,10 @@ function registerHandlers(): void {
       return;
     }
     state.present?.webContents.send(IPC.presentCommand, command);
+  });
+  ipcMain.on(IPC.presentInk, (event, ink: SlideInk[]) => {
+    const state = ownerOf(event.sender);
+    if (state && !state.editor.isDestroyed()) state.editor.webContents.send(IPC.presentInk, ink);
   });
   ipcMain.on(IPC.presentState, (event, presentation: PresentationState) => {
     const state = ownerOf(event.sender);

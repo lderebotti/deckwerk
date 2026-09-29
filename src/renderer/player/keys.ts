@@ -1,4 +1,5 @@
 import type { Player } from './player.js';
+import { bindInk, clearInk, createInkPalette } from './ink.js';
 
 /**
  * The presenting key map, shared by the present window and the export bundle so
@@ -62,6 +63,11 @@ export function bindPresentKeys(
   handlers: KeyHandlers = {},
 ): () => void {
   const laser = bindLaserPointer(target);
+  const doc = 'document' in target ? target.document : target.ownerDocument;
+  const ink = bindInk(target, () => doc.querySelector<HTMLElement>('.player-root > .stage'));
+  const palette = createInkPalette(doc, ink.pen);
+  palette.classList.add('floating');
+  doc.body.appendChild(palette);
   const onKey = (ev: Event) => {
     const e = ev as KeyboardEvent;
     // Never steal keys from a focused field; the editor preview shares this map.
@@ -100,12 +106,24 @@ export function bindPresentKeys(
         break;
       case 'Escape':
         e.preventDefault();
-        handlers.onExit?.();
+        // Escape puts the pen down first, as in PowerPoint, rather than ending the show.
+        if (ink.active()) ink.setActive(false);
+        else handlers.onExit?.();
         break;
       case 'l':
       case 'L':
         e.preventDefault();
-        laser.toggle();
+        if (laser.toggle()) ink.setActive(false);
+        break;
+      case 'p':
+      case 'P':
+        e.preventDefault();
+        if (ink.toggle()) laser.setVisible(false);
+        break;
+      case 'e':
+      case 'E':
+        e.preventDefault();
+        clearInk(doc.querySelector('.player-root > .stage'));
         break;
       case 'o':
       case 'O':
@@ -119,5 +137,7 @@ export function bindPresentKeys(
   return () => {
     target.removeEventListener('keydown', onKey);
     laser.dispose();
+    ink.dispose();
+    palette.remove();
   };
 }

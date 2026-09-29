@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { Deck } from '@shared/deck.js';
+import type { SlideInk } from '@shared/ink.js';
 import type { DeckHistoryDocument } from '@shared/deckHistory.js';
 import type { ClipboardReadResult, ClipboardWriteRequest } from '@shared/clipboard.js';
 import type { ClipboardImageSource } from '@shared/clipboardImages.js';
@@ -178,6 +179,8 @@ const api = {
     on(IPC.presentCommand, fn),
   onPresentState: (fn: (state: PresentationState) => void): (() => void) =>
     on(IPC.presentState, fn),
+  publishPresentInk: (ink: SlideInk[]): void => ipcRenderer.send(IPC.presentInk, ink),
+  onPresentInk: (fn: (ink: SlideInk[]) => void): (() => void) => on(IPC.presentInk, fn),
 
   openTrim: (payload: { src: string; elementId: string }): Promise<void> =>
     ipcRenderer.invoke(IPC.trimOpen, payload),

@@ -24,6 +24,9 @@ import { isEditorTarget, launchDesktopApp, materializeDesktopApp } from './deskt
 export interface DesktopEditor {
   cdp: Cdp;
   deckDir: string;
+  /** For finding the app's other windows, e.g. the audience window. */
+  debugPort: number;
+  log: () => string;
   close: () => Promise<void>;
 }
 
@@ -86,6 +89,8 @@ export async function launchDesktopEditor(
   return {
     cdp,
     deckDir,
+    debugPort,
+    log: appLog,
     close: async () => {
       cdp.close();
       await stopBrowser(appProcess);

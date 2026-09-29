@@ -36,6 +36,8 @@ export const IPC = {
   presentCursor: 'present:cursor',
   presentCommand: 'present:command',
   presentState: 'present:state',
+  /** The show's pen ink, from the audience window as it closes to the editor. */
+  presentInk: 'present:ink',
   trimOpen: 'trim:open',
   trimRun: 'trim:run',
   /** A poster frame for a preview surface, cut by ffmpeg in the main process. */
@@ -126,7 +128,10 @@ export type PresentationCommand =
   | { type: 'next' | 'prev' | 'toggleBlank' | 'swapDisplays' | 'exit' }
   | { type: 'goTo'; slide: number }
   /** Speaker View's laser, as a fraction of the slide; null hides it. */
-  | { type: 'laser'; at: { x: number; y: number } | null };
+  | { type: 'laser'; at: { x: number; y: number } | null }
+  /** Speaker View's pen: one stroke segment in deck canvas pixels, or erase the slide's ink. */
+  | { type: 'ink'; from: { x: number; y: number }; to: { x: number; y: number }; color: string; width: number; start?: boolean }
+  | { type: 'clearInk' };
 
 export interface PresentationState {
   cursor: { slide: number; step: number };

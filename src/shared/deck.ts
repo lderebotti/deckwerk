@@ -270,6 +270,8 @@ const ShapeElement = BaseElement.extend({
   arrowEnd: z.boolean().default(false),
   /** Absolute canvas-space control point for an editable quadratic curve. */
   control: z.object({ x: z.number(), y: z.number() }).nullable().optional(),
+  /** Pen ink kept from a presentation (shared/ink.ts); a show can leave it out. */
+  ink: z.boolean().optional(),
 });
 
 /** Escape hatch: arbitrary markup that still drags and resizes like anything else. */

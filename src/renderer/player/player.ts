@@ -29,6 +29,7 @@ import {
   type MorphPair,
 } from '@shared/morph.js';
 import { morphTransforms, type Rect, type TextLayout } from './morphTransform.js';
+import { restoreInk } from './ink.js';
 import { isPendingSrc } from '@shared/media.js';
 import { WEB_BRIDGE_SOURCE, isWebBridgeAction, type WebBridgeEvent } from '@shared/webBridge.js';
 
@@ -364,6 +365,8 @@ export class Player {
     this.adoptWarmedImages(rendered);
     revealImagesWhenDecoded(rendered);
     this.stage.replaceChildren(rendered);
+    // Ink drawn on this slide earlier in the show comes back with it.
+    restoreInk(this.stage);
     this.notifyWebFrames({ source: WEB_BRIDGE_SOURCE, event: 'active', step: this.cursor.step, steps });
 
     // Two passes, because identity has to win globally rather than per node: a

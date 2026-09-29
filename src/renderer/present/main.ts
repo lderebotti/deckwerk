@@ -7,6 +7,7 @@ import {
   type PresentationRange,
 } from '@shared/presentationRange.js';
 import { bindPresentKeys, pointLaserAt } from '../player/keys.js';
+import { clearInk, drawInk, takeInk } from '../player/ink.js';
 import { Player } from '../player/player.js';
 import { eventOnInteractiveWeb, slideLinkFromEvent } from '../player/links.js';
 import { selectionPreventsAdvance } from '../player/presentationPointer.js';
@@ -134,6 +135,15 @@ window.api.onPresentCommand((command: PresentationCommand) => {
   }
   else if (command.type === 'toggleBlank') player.toggleBlank();
   else if (command.type === 'laser') pointLaserAt(root.querySelector('.stage'), command.at);
+  else if (command.type === 'ink') drawInk(root.querySelector('.stage'), command);
+  else if (command.type === 'clearInk') clearInk(root.querySelector('.stage'));
+});
+
+// However the show ends -- Escape, End show, the window closed -- the editor
+// gets its ink, and asks whether to keep it.
+window.addEventListener('beforeunload', () => {
+  const ink = takeInk();
+  if (ink.length) window.api.publishPresentInk(ink);
 });
 
 // Live updates while presenting (editing on a second screen mid-rehearsal).

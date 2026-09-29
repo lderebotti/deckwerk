@@ -824,6 +824,7 @@ export function elementFromNode(
       arrowStart: node.dataset.arrowStart === 'true',
       arrowEnd: node.dataset.arrowEnd === 'true',
       ...(node.dataset.control ? { control: { x: cx, y: cy } } : {}),
+      ...(node.dataset.ink === 'true' ? { ink: true } : {}),
     };
   }
 
@@ -1109,6 +1110,7 @@ function elementToHtml(element: SlideElement, build?: TimelineEntry): string {
         + (element.control ? ` data-control="${element.control.x},${element.control.y}"` : '')
         + attr('data-path', element.path)
         + (element.pathSize ? ` data-path-size="${element.pathSize.w},${element.pathSize.h}"` : '')
+        + (element.ink ? ' data-ink="true"' : '')
         // Paint effects live on the wrapper rather than the nested SVG. Give
         // that wrapper the same contour as the native shape so shadows and
         // filters do not reveal a rectangular box around circles and rounded

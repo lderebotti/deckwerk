@@ -1,6 +1,7 @@
 import type { Deck } from '@shared/deck.js';
 import type { PresentationCommand, PresentationState } from '@shared/ipc.js';
 import { resolveState } from '@shared/timeline.js';
+import { bindInk, clearInk, createInkPalette, restoreInk } from '../player/ink.js';
 import { bindLaserPointer } from '../player/keys.js';
 import { revealImagesWhenDecoded } from '../player/imageDecode.js';
 import { freezePreviewVideos, releasePreviewVideos } from '../player/previewPoster.js';
@@ -44,6 +45,10 @@ export interface SpeakerView {
   setState(state: PresentationState): void;
   /** Turn the laser on or off; while on, pointing at the current slide shows it to the audience. */
   toggleLaser(): boolean;
+  /** Turn the pen on or off; while on, drawing on the current slide draws on the audience screen. */
+  togglePen(): boolean;
+  /** Erase the current slide's ink, here and on the audience screen. */
+  clearInk(): void;
   /** Re-scale the previews; call on resize. */
   refresh(): void;
   /** Advance the clocks. Called on a timer internally; exposed for tests. */
@@ -73,6 +78,7 @@ const MARKUP = `
     <button class="speaker-prev">← Previous</button>
     <button class="speaker-blank">Blank</button>
     <button class="speaker-laser" aria-pressed="false" title="Laser pointer (L)">Laser</button>
+    <button class="speaker-pen" aria-pressed="false" title="Pen (P); E erases">Pen</button>
     <button class="speaker-next-button primary">Next →</button>
     <button class="speaker-swap">Switch displays</button>
     <button class="speaker-end danger">End show</button>
@@ -146,6 +152,7 @@ export function createSpeakerView(options: SpeakerViewOptions): SpeakerView {
   function render(): void {
     if (!deck) return;
     preview(currentHost, state.cursor.slide, state.cursor.step);
+    restoreInk(currentHost.querySelector('.stage'));
     const lastSlide = state.range?.end ?? deck.slides.length - 1;
     let nextSlide = state.cursor.slide + 1;
     while (nextSlide <= lastSlide && deck.slides[nextSlide]?.skipped) nextSlide += 1;
@@ -195,9 +202,30 @@ export function createSpeakerView(options: SpeakerViewOptions): SpeakerView {
     laserOn = !laserOn;
     laserButton.setAttribute('aria-pressed', String(laserOn));
     if (!laserOn) hideLaser();
+    else setPen(false);
     return laserOn;
   };
   laserButton.addEventListener('click', toggleLaser);
+
+  // The pen: strokes on the current preview are drawn there and relayed to
+  // the audience. Every render rebuilds the preview; ink.ts keeps each slide's
+  // strokes and render() repaints them.
+  const penButton = pick<HTMLButtonElement>('.speaker-pen');
+  const pen = bindInk(currentHost, () => currentHost.querySelector('.stage'), (segment) => {
+    onCommand({ type: 'ink', ...segment });
+  });
+  const setPen = (on: boolean) => {
+    pen.setActive(on);
+    penButton.setAttribute('aria-pressed', String(on));
+    if (on && laserOn) toggleLaser();
+  };
+  const togglePen = () => (setPen(!pen.active()), pen.active());
+  penButton.addEventListener('click', togglePen);
+  penButton.after(createInkPalette(document, pen.pen));
+  const eraseInk = () => {
+    clearInk(currentHost.querySelector('.stage'));
+    onCommand({ type: 'clearInk' });
+  };
 
   tick();
   const clock = setInterval(tick, 250);
@@ -220,12 +248,15 @@ export function createSpeakerView(options: SpeakerViewOptions): SpeakerView {
       tick();
     },
     toggleLaser,
+    togglePen,
+    clearInk: eraseInk,
     refresh: render,
     tick,
     destroy() {
       clearInterval(clock);
       hideLaser();
       laser.dispose();
+      pen.dispose();
       theme?.remove();
       theme = null;
       host.replaceChildren();
@@ -242,7 +273,7 @@ export function createSpeakerView(options: SpeakerViewOptions): SpeakerView {
 export function bindSpeakerKeys(
   target: Window | HTMLElement,
   onCommand: (command: PresentationCommand) => void,
-  onLaser?: () => void,
+  tools?: Pick<SpeakerView, 'toggleLaser' | 'togglePen' | 'clearInk'>,
 ): () => void {
   const onKey = (event: Event) => {
     const key = (event as KeyboardEvent).key;
@@ -252,8 +283,12 @@ export function bindSpeakerKeys(
       onCommand({ type: 'prev' });
     } else if (key === 'b' || key === 'B') {
       onCommand({ type: 'toggleBlank' });
-    } else if ((key === 'l' || key === 'L') && onLaser) {
-      onLaser();
+    } else if ((key === 'l' || key === 'L') && tools) {
+      tools.toggleLaser();
+    } else if ((key === 'p' || key === 'P') && tools) {
+      tools.togglePen();
+    } else if ((key === 'e' || key === 'E') && tools) {
+      tools.clearInk();
     } else if (key === 'Escape') {
       onCommand({ type: 'exit' });
     } else {
