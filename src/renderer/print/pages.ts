@@ -24,6 +24,8 @@ export interface PrintPagesOptions {
   includeHidden?: boolean;
   /** Restrict the document to a single slide id. */
   slideFilter?: string | null;
+  /** Restrict the document to these slide ids. */
+  slideIds?: string[] | null;
   resolveSrc: (src: string) => string;
 }
 
@@ -45,14 +47,18 @@ export function buildPrintPages(
   container: HTMLElement,
   options: PrintPagesOptions,
 ): PrintPage[] {
-  const { deck, mode, includeHidden = false, slideFilter = null, resolveSrc } = options;
+  const { deck, mode, includeHidden = false, slideFilter = null, slideIds = null, resolveSrc } = options;
   const pages: PrintPage[] = [];
   for (const slide of deck.slides) {
     if (slide.skipped && !includeHidden) continue;
     if (slideFilter && slide.id !== slideFilter) continue;
+    if (slideIds && !slideIds.includes(slide.id)) continue;
     for (const step of pdfSteps(slide, mode)) {
       const page = document.createElement('section');
       page.className = 'pdf-page';
+      // Rail number and build step, for exports that name a file per page.
+      page.dataset.slideNumber = String(deck.slides.indexOf(slide) + 1);
+      page.dataset.step = String(step);
       page.style.width = `${deck.canvas.w}px`;
       page.style.height = `${deck.canvas.h}px`;
       const stage = document.createElement('div');

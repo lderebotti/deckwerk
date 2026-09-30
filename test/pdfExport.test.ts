@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { emptyDeck } from '../src/shared/deck.js';
-import { pdfPageCount, pdfSteps } from '../src/shared/pdfExport.js';
+import { pdfPageCount, pdfSteps, pngFileName } from '../src/shared/pdfExport.js';
 
 describe('PDF build-state selection', () => {
   it('exports opening, final, or every distinct click state', () => {
@@ -36,5 +36,13 @@ describe('PDF build-state selection', () => {
     expect(source).toContain('size: ${deck.canvas.w}px ${deck.canvas.h}px');
     expect(source).not.toContain('stage.style.transform');
     expect(source).not.toContain('const pageWidthIn');
+  });
+});
+
+describe('PNG export file names', () => {
+  it('pads to the slide count and suffixes build stages', () => {
+    expect(pngFileName(7, 9, null)).toBe('slide-7.png');
+    expect(pngFileName(7, 120, null)).toBe('slide-007.png');
+    expect(pngFileName(12, 40, 1)).toBe('slide-12-2.png');
   });
 });

@@ -1,9 +1,16 @@
 export interface PdfExportChoice {
   includeEachBuildStage: boolean;
+  onlySelected: boolean;
 }
 
-/** Ask for the one PDF-specific option without leaving the editor's UI. */
-export function showPdfExportDialog(): Promise<PdfExportChoice | null> {
+export interface ExportDialogOptions {
+  title?: string;
+  /** Offer "Only the N selected slides" when more than zero are selected. */
+  selectedCount?: number;
+}
+
+/** Ask for the export options without leaving the editor's UI. */
+export function showPdfExportDialog(options: ExportDialogOptions = {}): Promise<PdfExportChoice | null> {
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = 'workflow-overlay';
@@ -16,7 +23,7 @@ export function showPdfExportDialog(): Promise<PdfExportChoice | null> {
 
     const title = document.createElement('h2');
     title.id = 'pdf-export-title';
-    title.textContent = 'Export PDF';
+    title.textContent = options.title ?? 'Export PDF';
 
     const option = document.createElement('label');
     option.className = 'field-check pdf-export-builds';
@@ -25,6 +32,15 @@ export function showPdfExportDialog(): Promise<PdfExportChoice | null> {
     const optionText = document.createElement('span');
     optionText.textContent = 'Include each stage of builds';
     option.append(checkbox, optionText);
+
+    const selected = document.createElement('label');
+    selected.className = 'field-check pdf-export-builds';
+    const selectedBox = document.createElement('input');
+    selectedBox.type = 'checkbox';
+    const selectedText = document.createElement('span');
+    const count = options.selectedCount ?? 0;
+    selectedText.textContent = `Only the ${count} selected slide${count === 1 ? '' : 's'}`;
+    selected.append(selectedBox, selectedText);
 
     const actions = document.createElement('div');
     actions.className = 'workflow-actions';
@@ -45,7 +61,7 @@ export function showPdfExportDialog(): Promise<PdfExportChoice | null> {
       resolve(choice);
     };
     cancel.addEventListener('click', () => finish(null));
-    submit.addEventListener('click', () => finish({ includeEachBuildStage: checkbox.checked }));
+    submit.addEventListener('click', () => finish({ includeEachBuildStage: checkbox.checked, onlySelected: selectedBox.checked }));
     overlay.addEventListener('pointerdown', (event) => {
       if (event.target === overlay) finish(null);
     });
@@ -53,7 +69,7 @@ export function showPdfExportDialog(): Promise<PdfExportChoice | null> {
       if (event.key === 'Escape') finish(null);
     });
 
-    dialog.append(title, option, actions);
+    dialog.append(title, option, ...(count > 0 ? [selected] : []), actions);
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
     checkbox.focus();

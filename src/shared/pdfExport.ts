@@ -14,3 +14,13 @@ export function pdfPageCount(slides: Slide[], mode: PdfBuildMode, includeHidden 
     .filter((slide) => includeHidden || !slide.skipped)
     .reduce((count, slide) => count + pdfSteps(slide, mode).length, 0);
 }
+
+/**
+ * File name for one exported PNG page: `slide-07.png`, or `slide-07-2.png`
+ * for the second build stage when every stage is exported. Zero-padded to the
+ * deck's slide count so the folder sorts in rail order.
+ */
+export function pngFileName(slideNumber: number, slideCount: number, step: number | null): string {
+  const number = String(slideNumber).padStart(String(slideCount).length, '0');
+  return step === null ? `slide-${number}.png` : `slide-${number}-${step + 1}.png`;
+}

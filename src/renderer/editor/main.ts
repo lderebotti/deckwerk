@@ -425,6 +425,7 @@ function buildToolbar(): void {
       label: 'Lossy export',
       options: [
         { label: 'PDF…', action: () => void exportPdf() },
+        { label: 'PNG…', action: () => void exportPng() },
         { label: 'Web…', action: () => void exportWeb() },
       ],
     },
@@ -449,6 +450,7 @@ function buildToolbar(): void {
       options: [
         { label: 'Save As…', action: () => void saveAsPresentation() },
         { label: 'Export PDF…', action: () => void exportPdf() },
+        { label: 'Export PNG…', action: () => void exportPng() },
         { label: 'Export Web…', action: () => void exportWeb() },
       ],
     },
@@ -567,6 +569,27 @@ async function exportPdf(): Promise<void> {
     if (result) setStatusMessage(`PDF saved to ${result}`);
   } catch (err) {
     setStatusMessage(`PDF export failed: ${err instanceof Error ? err.message : err}`);
+  }
+}
+
+async function exportPng(): Promise<void> {
+  const selected = store.selectedSlides();
+  const choice = await showPdfExportDialog({ title: 'Export PNG', selectedCount: selected.length });
+  if (!choice) return;
+  try {
+    const result = await runOperation('Preparing PNG export…', async (operation) => {
+      operation.update('Saving deck.json and theme.css');
+      await cssEditor.flush();
+      await save();
+      operation.update('Waiting for an export folder');
+      return window.api.exportPng({
+        mode: choice.includeEachBuildStage ? 'every' : 'final',
+        slideIds: choice.onlySelected ? selected.map((slide) => slide.id) : undefined,
+      }, operation.id);
+    });
+    if (result) setStatusMessage(`PNG images saved to ${result}`);
+  } catch (err) {
+    setStatusMessage(`PNG export failed: ${err instanceof Error ? err.message : err}`);
   }
 }
 

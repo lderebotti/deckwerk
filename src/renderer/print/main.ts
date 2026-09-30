@@ -10,6 +10,7 @@ const mode = params.get('mode') === 'initial' || params.get('mode') === 'every'
   : 'final';
 const includeHidden = params.get('includeHidden') === '1';
 const slideFilter = params.get('slide');
+const slideIds = params.get('slides')?.split(',') ?? null;
 const jobId = params.get('job') ?? '';
 
 void (async () => {
@@ -29,6 +30,7 @@ void (async () => {
     mode,
     includeHidden,
     slideFilter,
+    slideIds,
     resolveSrc: window.api.assetUrl,
   });
   await waitForPdfDocument(pages);

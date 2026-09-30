@@ -22,6 +22,7 @@ import type {
   MediaInfo,
   OperationProgress,
   PdfExportRequest,
+  PngExportRequest,
   PresentationCommand,
   PresentationState,
   PresentOptions,
@@ -146,6 +147,8 @@ const api = {
     ipcRenderer.invoke(IPC.exportBundle, request, operationId),
   exportPdf: (request: PdfExportRequest = {}, operationId?: string): Promise<string | null> =>
     ipcRenderer.invoke(IPC.exportPdf, request, operationId),
+  exportPng: (request: PngExportRequest = {}, operationId?: string): Promise<string | null> =>
+    ipcRenderer.invoke(IPC.exportPng, request, operationId),
   onOperationProgress: (fn: (p: OperationProgress) => void): (() => void) =>
     on(IPC.operationProgress, fn),
   pdfReady: (jobId: string): void => ipcRenderer.send(IPC.exportPdfReady, jobId),

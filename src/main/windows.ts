@@ -295,19 +295,24 @@ export function showSpeakerWindowAboveFullscreen(win: BrowserWindow): void {
   win.focus();
 }
 
-/** Hidden document that lays every requested slide state out as print pages. */
-export function createPdfWindow(query: string): BrowserWindow {
+/**
+ * Hidden document that lays every requested slide state out as print pages.
+ * `capture` sizes it to the canvas and renders offscreen, so `capturePage`
+ * gets real frames for PNG export.
+ */
+export function createPdfWindow(query: string, capture?: { w: number; h: number }): BrowserWindow {
   const win = new BrowserWindow({
-    width: 960,
-    height: 540,
+    width: capture?.w ?? 960,
+    height: capture?.h ?? 540,
+    useContentSize: true,
     show: false,
     backgroundColor: '#000000',
     webPreferences: {
-      backgroundThrottling: !HEADLESS_TEST,
+      backgroundThrottling: !HEADLESS_TEST && !capture,
       // A hidden window is never mapped, so it gets no compositor frames and
       // every DevTools input event waits out a ~1 s fallback. Offscreen
       // rendering keeps producing frames with nothing on screen.
-      offscreen: HEADLESS_TEST,
+      offscreen: HEADLESS_TEST || !!capture,
       preload: preload(),
       contextIsolation: true,
       nodeIntegration: false,

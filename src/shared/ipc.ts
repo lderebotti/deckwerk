@@ -50,6 +50,7 @@ export const IPC = {
   exportBundle: 'export:bundle',
   exportPdf: 'export:pdf',
   exportPdfReady: 'export:pdfReady',
+  exportPng: 'export:png',
   operationProgress: 'operation:progress',
   htmlExport: 'html:export',
   htmlEdit: 'html:edit',
@@ -171,6 +172,12 @@ export interface WebExportRequest {
 export interface PdfExportRequest {
   mode?: PdfBuildMode;
   includeHidden?: boolean;
+}
+
+export interface PngExportRequest {
+  mode?: PdfBuildMode;
+  /** Only these slides; every shown slide when absent. */
+  slideIds?: string[];
 }
 
 /**

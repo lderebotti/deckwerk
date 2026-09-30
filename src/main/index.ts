@@ -35,6 +35,7 @@ import type {
   PresentationCommand,
   PresentationState,
   PdfExportRequest,
+  PngExportRequest,
   WebExportRequest,
   PresentOptions,
   RasterSaveRequest,
@@ -67,6 +68,7 @@ import { probeMedia, runTrim } from './ffmpeg.js';
 import { attachRendererHealth } from './windowHealth.js';
 import { POSTER_HOST, posterFor } from './posterCache.js';
 import { showOpenDialog, showSaveDialog } from './dialogs.js';
+import { pngFileName } from '@shared/pdfExport.js';
 import { importKeynote } from './keynoteImport.js';
 import { importPowerPoint } from './pptxImport.js';
 import { loadDeckHistory, saveDeckHistory } from './deckHistoryStore.js';
@@ -1172,6 +1174,46 @@ function registerHandlers(): void {
     return dir;
   });
 
+  /**
+   * Open a hidden print window for the asking deck and wait until every page
+   * has laid out. Destroying the window is the caller's job.
+   */
+  async function openPrintWindow(
+    event: IpcMainInvokeEvent,
+    query: string,
+    capture?: { w: number; h: number },
+  ): Promise<BrowserWindow> {
+    const jobId = randomUUID();
+    const ready = new Promise<void>((resolveReady, reject) => {
+      const timer = setTimeout(() => {
+        ipcMain.off(IPC.exportPdfReady, listener);
+        reject(new Error('Slide renderer timed out'));
+      }, 30_000);
+      const listener = (_readyEvent: Electron.IpcMainEvent, readyJobId: string) => {
+        if (readyJobId !== jobId) return;
+        clearTimeout(timer);
+        ipcMain.off(IPC.exportPdfReady, listener);
+        resolveReady();
+      };
+      ipcMain.on(IPC.exportPdfReady, listener);
+    });
+    const printWindow = createPdfWindow(`${query}&job=${encodeURIComponent(jobId)}`, capture);
+    // The print page asks for "the" deck the same way any window does, so it
+    // has to belong to the document being exported.
+    attachWindow(requireOwner(event), printWindow);
+    try {
+      await ready;
+      const renderError = await printWindow.webContents.executeJavaScript(
+        'document.documentElement.dataset.error || ""',
+      ) as string;
+      if (renderError) throw new Error(renderError);
+      return printWindow;
+    } catch (error) {
+      if (!printWindow.isDestroyed()) printWindow.destroy();
+      throw error;
+    }
+  }
+
   ipcMain.handle(IPC.exportPdf, async (
     event,
     request: PdfExportRequest = {},
@@ -1189,32 +1231,9 @@ function registerHandlers(): void {
     if (target.canceled || !target.filePath) return null;
 
     reportOperation(event, operationId, 'Rendering slide pages', null);
-    const jobId = randomUUID();
-    const ready = new Promise<void>((resolveReady, reject) => {
-      const timer = setTimeout(() => {
-        ipcMain.off(IPC.exportPdfReady, listener);
-        reject(new Error('PDF renderer timed out'));
-      }, 30_000);
-      const listener = (_readyEvent: Electron.IpcMainEvent, readyJobId: string) => {
-        if (readyJobId !== jobId) return;
-        clearTimeout(timer);
-        ipcMain.off(IPC.exportPdfReady, listener);
-        resolveReady();
-      };
-      ipcMain.on(IPC.exportPdfReady, listener);
-    });
-    const query = `?job=${encodeURIComponent(jobId)}&mode=${mode}&includeHidden=${includeHidden ? '1' : '0'}`;
-    const printWindow = createPdfWindow(query);
-    // The print page asks for "the" deck the same way any window does, so it
-    // has to belong to the document being exported.
-    attachWindow(requireOwner(event), printWindow);
+    const query = `?mode=${mode}&includeHidden=${includeHidden ? '1' : '0'}`;
+    const printWindow = await openPrintWindow(event, query);
     try {
-      await ready;
-      reportOperation(event, operationId, 'Checking rendered pages', 0.6);
-      const renderError = await printWindow.webContents.executeJavaScript(
-        'document.documentElement.dataset.error || ""',
-      ) as string;
-      if (renderError) throw new Error(renderError);
       reportOperation(event, operationId, 'Generating PDF data', 0.75);
       const pdf = await printWindow.webContents.printToPDF({
         printBackground: true,
@@ -1224,6 +1243,50 @@ function registerHandlers(): void {
       await writeFile(target.filePath, pdf);
       reportOperation(event, operationId, 'PDF export complete', 1);
       return target.filePath;
+    } finally {
+      if (!printWindow.isDestroyed()) printWindow.destroy();
+    }
+  });
+
+  ipcMain.handle(IPC.exportPng, async (
+    event,
+    request: PngExportRequest = {},
+    operationId?: string,
+  ): Promise<string | null> => {
+    const s = requireSession(event);
+    const mode = request.mode ?? 'final';
+    const picked = await showOpenDialog({
+      title: 'Export PNG images into',
+      buttonLabel: 'Export',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (picked.canceled || picked.filePaths.length === 0) return null;
+    const dir = picked.filePaths[0];
+
+    reportOperation(event, operationId, 'Rendering slide pages', null);
+    const { canvas } = s.deck;
+    // Slides picked by hand are exported even when skipped.
+    const slides = request.slideIds?.length ? `&slides=${request.slideIds.map(encodeURIComponent).join(',')}` : '';
+    const printWindow = await openPrintWindow(event, `?mode=${mode}&includeHidden=${slides ? 1 : 0}${slides}`, canvas);
+    try {
+      const pages = await printWindow.webContents.executeJavaScript(
+        '[...document.querySelectorAll(".pdf-page")].map((p) => [Number(p.dataset.slideNumber), Number(p.dataset.step)])',
+      ) as Array<[number, number]>;
+      for (const [index, [slideNumber, step]] of pages.entries()) {
+        const name = pngFileName(slideNumber, s.deck.slides.length, mode === 'every' ? step : null);
+        reportOperation(event, operationId, `Writing ${name} (${index + 1} of ${pages.length})`, index / pages.length);
+        // Show one page at a time at the top of the canvas-sized window, and
+        // let it paint before the capture.
+        await printWindow.webContents.executeJavaScript(`
+          document.querySelectorAll('.pdf-page').forEach((p, i) => { p.style.display = i === ${index} ? '' : 'none'; });
+          new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+        `);
+        let image = await printWindow.webContents.capturePage({ x: 0, y: 0, width: canvas.w, height: canvas.h });
+        if (image.getSize().width !== canvas.w) image = image.resize({ width: canvas.w, height: canvas.h });
+        await writeFile(join(dir, name), image.toPNG());
+      }
+      reportOperation(event, operationId, 'PNG export complete', 1);
+      return dir;
     } finally {
       if (!printWindow.isDestroyed()) printWindow.destroy();
     }
