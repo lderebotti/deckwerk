@@ -48,7 +48,9 @@ describe('Morph matching', () => {
     const globalHover = css.lastIndexOf('button:hover:not(:disabled)');
     const objectHover = css.lastIndexOf('button.morph-object-hit:hover:not(:disabled)');
     expect(objectHover).toBeGreaterThan(globalHover);
-    expect(css.slice(objectHover, objectHover + 180)).toContain('rgb(245 158 11 / 3%)');
+    // A 3% wash of the build orange, which follows the desktop theme.
+    expect(css.slice(objectHover, objectHover + 180))
+      .toContain('color-mix(in srgb, var(--build-orange) 3%, transparent)');
   });
 
   it('essentially pairs objects that differ only by sub-epsilon drift', () => {
