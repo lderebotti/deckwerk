@@ -2,7 +2,7 @@ import type { Deck } from '@shared/deck.js';
 import type { PresentationCommand, PresentationState } from '@shared/ipc.js';
 import { resolveState } from '@shared/timeline.js';
 import { bindInk, clearInk, createInkPalette, restoreInk } from '../player/ink.js';
-import { bindLaserPointer } from '../player/keys.js';
+import { bindLaserPointer, laserTrailEnabled, setLaserTrail } from '../player/keys.js';
 import { revealImagesWhenDecoded } from '../player/imageDecode.js';
 import { freezePreviewVideos, releasePreviewVideos } from '../player/previewPoster.js';
 import { applyStageScale, renderSlide } from '../player/render.js';
@@ -78,6 +78,7 @@ const MARKUP = `
     <button class="speaker-prev">← Previous</button>
     <button class="speaker-blank">Blank</button>
     <button class="speaker-laser" aria-pressed="false" title="Laser pointer (L)">Laser</button>
+    <button class="speaker-trail" aria-pressed="false" title="Laser trail: the laser smears as it moves">Trail</button>
     <button class="speaker-pen" aria-pressed="false" title="Pen (P); E erases">Pen</button>
     <button class="speaker-next-button primary">Next →</button>
     <button class="speaker-swap">Switch displays</button>
@@ -206,6 +207,14 @@ export function createSpeakerView(options: SpeakerViewOptions): SpeakerView {
     return laserOn;
   };
   laserButton.addEventListener('click', toggleLaser);
+  // The laser's opt-in smear, here and on the audience screen.
+  const trailButton = pick<HTMLButtonElement>('.speaker-trail');
+  const syncTrail = () => trailButton.setAttribute('aria-pressed', String(laserTrailEnabled()));
+  trailButton.addEventListener('click', () => {
+    setLaserTrail(!laserTrailEnabled());
+    syncTrail();
+  });
+  syncTrail();
 
   // The pen: strokes on the current preview are drawn there and relayed to
   // the audience. Every render rebuilds the preview; ink.ts keeps each slide's

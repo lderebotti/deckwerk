@@ -252,6 +252,8 @@ const ICONS = {
   prev: '<path d="M10 3.5L5.5 8l4.5 4.5"/>',
   next: '<path d="M6 3.5L10.5 8 6 12.5"/>',
   laser: '<circle cx="8" cy="8" r="2.2" fill="currentColor"/><circle cx="8" cy="8" r="5.2"/>',
+  trail: '<circle cx="11.5" cy="4.5" r="2" fill="currentColor"/><path d="M9.6 6.4L2.5 13.5"/>'
+    + '<path d="M8.2 4.6L4.5 8.3" opacity=".55"/><path d="M11.4 7.8L7.7 11.5" opacity=".55"/>',
   pen: '<path d="M10.5 2.5l3 3-7.5 7.5H3v-3z"/><path d="M9 4l3 3"/>',
   erase: '<path d="M9.5 2.8l3.7 3.7-6.2 6.2H3.8L2.5 11.4z"/><path d="M6.5 5.8l3.7 3.7"/><path d="M7 12.7h6.5"/>',
 };
@@ -259,7 +261,8 @@ const ICONS = {
 /**
  * The slideshow toolbar, PowerPoint's: bottom left, shown while the mouse
  * moves and gone after it rests, so a presenter on one screen can reach the
- * laser, the pen and its colours without knowing the keys. While a pointer
+ * laser (and switch its trail), the pen and its colours without knowing the
+ * keys. While a pointer
  * tool is in use it waits until the mouse comes to its corner, so the ink and
  * the laser are not drawn under a toolbar. Its clicks stop here, so pressing
  * a button never advances the slide.
@@ -292,6 +295,10 @@ function createPresentToolbar(doc: Document, tools: {
   button('prev', 'Previous (←)', tools.prev);
   button('next', 'Next (→)', tools.next);
   const laser = button('laser', 'Laser pointer (L)', tools.toggleLaser);
+  const trail = button('trail', 'Laser trail', () => {
+    setLaserTrail(!laserTrailEnabled());
+    sync();
+  });
   const pen = button('pen', 'Pen (P)', tools.togglePen);
   button('erase', 'Erase ink (E)', tools.erase);
   bar.appendChild(tools.palette);
@@ -309,6 +316,7 @@ function createPresentToolbar(doc: Document, tools: {
   };
   const sync = () => {
     laser.setAttribute('aria-pressed', String(tools.laserOn()));
+    trail.setAttribute('aria-pressed', String(laserTrailEnabled()));
     pen.setAttribute('aria-pressed', String(tools.penOn()));
   };
   const reveal = (event: Event) => {

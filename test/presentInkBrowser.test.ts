@@ -9,7 +9,7 @@ import { launchDesktopEditor, type DesktopEditor } from './support/desktopEditor
  * Pen ink survives the show: drawn in the real audience window with real
  * input, handed to the editor as the window closes, and kept as ink shapes
  * after the author answers the editor's prompt. The next show includes it
- * unless the Present menu's "Show saved ink" is unchecked, which hides it in
+ * unless the View menu's "Show saved ink" is unchecked, which hides it in
  * the editor too.
  */
 
@@ -113,18 +113,31 @@ describe.skipIf(!electronBinary)('presentation ink', () => {
         return [surface, Boolean(node) && getComputedStyle(node).display !== 'none'];
       }))`);
     expect(await editorShows()).toEqual({ '#canvas': true, '#rail': true });
-    // ...and, with "Show saved ink" unchecked in the Present menu, neither the
+    // ...and, with "Show saved ink" unchecked in the View menu, neither the
     // show nor the editor does.
-    await app.cdp.click('[aria-label="Presentation options"]');
+    await app.cdp.clickByText('.shape-menu-trigger', 'View');
     await app.cdp.clickByText('.shape-menu-item', 'Show saved ink');
     expect(await editorShows()).toEqual({ '#canvas': false, '#rail': false });
-    // Opting into the laser trail in the same menu reaches the next show.
-    await app.cdp.click('[aria-label="Presentation options"]');
-    await app.cdp.clickByText('.shape-menu-item', 'Laser trail');
     expect(await shows()).toBe(false);
+    // The laser's trail is opt-in, switched from the slideshow toolbar with
+    // real input: none until then, a smear behind the moving laser after.
+    const point = async (x: number, y: number) => audience!.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
+    await audience!.typeKeys('l');
+    await point(600, 400);
+    expect(await audience!.evaluate<boolean>(`Boolean(document.querySelector('.laser-trail'))`)).toBe(false);
+    // Bring the toolbar up by coming to its corner, then switch the trail on.
+    const bar = await audience!.evaluate<{ x: number; y: number }>(`(() => {
+      const r = document.querySelector('.present-toolbar').getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    })()`);
+    await point(bar.x, bar.y);
+    await eventually(() => audience!.evaluate<boolean>(`document.querySelector('.present-toolbar').classList.contains('shown')`),
+      'the slideshow toolbar did not come up');
+    await audience!.click('.present-toolbar [aria-label="Laser trail"]');
+    for (let x = 400; x <= 800; x += 40) await point(x, 400);
     expect(await audience!.evaluate<boolean>(`Boolean(document.querySelector('.laser-trail'))`)).toBe(true);
     await endShow();
-    await app.cdp.click('[aria-label="Presentation options"]');
+    await app.cdp.clickByText('.shape-menu-trigger', 'View');
     expect(await app.cdp.evaluate<string | null>(`[...document.querySelectorAll('.shape-menu-item')]
       .find((item) => item.textContent === 'Show saved ink')?.getAttribute('aria-checked') ?? null`)).toBe('false');
     await app.cdp.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });

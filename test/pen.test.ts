@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { emptyDeck } from '../src/shared/deck.js';
 import type { PresentationCommand } from '../src/shared/ipc.js';
-import { bindPresentKeys } from '../src/renderer/player/keys.js';
+import { bindPresentKeys, laserTrailEnabled } from '../src/renderer/player/keys.js';
 import { clearInk, takeInk } from '../src/renderer/player/ink.js';
 import type { Player } from '../src/renderer/player/player.js';
 import { createSpeakerView } from '../src/renderer/presenter/speakerView.js';
@@ -116,6 +116,13 @@ describe('pen', () => {
     view.setState({ cursor: { slide: 0, step: 1 }, steps: 2, startedAt: 0, slideStartedAt: 0 });
     expect(preview.querySelector('.stage > canvas.ink')).not.toBeNull();
 
+    // Speaker View switches the laser's trail for both screens.
+    const trail = host.querySelector<HTMLButtonElement>('.speaker-trail')!;
+    trail.click();
+    expect([trail.getAttribute('aria-pressed'), laserTrailEnabled()]).toEqual(['true', true]);
+    trail.click();
+    expect([trail.getAttribute('aria-pressed'), laserTrailEnabled()]).toEqual(['false', false]);
+
     view.clearInk();
     expect(preview.querySelector('.stage > canvas.ink')).toBeNull();
     expect(commands.at(-1)).toEqual({ type: 'clearInk' });
@@ -149,11 +156,11 @@ describe('pen', () => {
     expect([onNext.mock.calls.length, onPrev.mock.calls.length, advanced.mock.calls.length]).toEqual([1, 1, 0]);
 
     // Laser and pen take turns, and the keys and the buttons agree.
-    tool('Laser').click();
-    expect(tool('Laser').getAttribute('aria-pressed')).toBe('true');
+    tool('Laser pointer').click();
+    expect(tool('Laser pointer').getAttribute('aria-pressed')).toBe('true');
     expect(document.querySelector<HTMLElement>('.laser-pointer')!.hidden).toBe(false);
     key('p');
-    expect(tool('Laser').getAttribute('aria-pressed')).toBe('false');
+    expect(tool('Laser pointer').getAttribute('aria-pressed')).toBe('false');
     expect(tool('Pen').getAttribute('aria-pressed')).toBe('true');
     expect(document.body.classList.contains('inking')).toBe(true);
 
@@ -169,6 +176,14 @@ describe('pen', () => {
 
     key('Escape');
     expect(tool('Pen').getAttribute('aria-pressed')).toBe('false');
+
+    // The laser's trail is opt-in and switched from the toolbar.
+    expect(tool('Laser trail').getAttribute('aria-pressed')).toBe('false');
+    tool('Laser trail').click();
+    expect(tool('Laser trail').getAttribute('aria-pressed')).toBe('true');
+    expect(laserTrailEnabled()).toBe(true);
+    tool('Laser trail').click();
+    expect(laserTrailEnabled()).toBe(false);
     window.removeEventListener('click', advanced);
     unbind();
     expect(document.querySelector('.present-toolbar')).toBeNull();
