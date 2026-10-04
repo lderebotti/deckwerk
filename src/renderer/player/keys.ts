@@ -14,9 +14,83 @@ export interface KeyHandlers {
 }
 
 /**
+ * The laser's smear is opt-in: on only when this preference is "true". Every
+ * DeckWerk window shares one origin, so the editor sets it and the presenting
+ * windows read it.
+ */
+export const LASER_TRAIL_KEY = 'deckwerk.laserTrail';
+const laserTrailOn = (doc: Document) => {
+  try { return doc.defaultView?.localStorage.getItem(LASER_TRAIL_KEY) === 'true'; } catch { return false; }
+};
+
+/** How long the laser's smear lingers behind the dot, in milliseconds. */
+const TRAIL_MS = 120;
+/** Each dot's trail, so a pointer relayed from Speaker View smears too. */
+const trails = new WeakMap<HTMLElement, (x: number, y: number) => void>();
+
+function moveDot(dot: HTMLElement, x: number, y: number): void {
+  dot.style.transform = `translate(${x}px, ${y}px)`;
+  if (!dot.hidden) trails.get(dot)?.(x, y);
+}
+
+/**
+ * The smear, as in PowerPoint: the laser's last few positions drawn behind the
+ * dot, thinning and fading out within TRAIL_MS. It animates only while there
+ * is something left to fade, so a resting laser costs nothing.
+ */
+function createLaserTrail(doc: Document): { push: (x: number, y: number) => void; dispose: () => void } {
+  const win = doc.defaultView!;
+  const canvas = doc.createElement('canvas');
+  canvas.className = 'laser-trail';
+  doc.body.appendChild(canvas);
+  let points: Array<{ x: number; y: number; t: number }> = [];
+  let frame = 0;
+  const draw = () => {
+    frame = 0;
+    const now = performance.now();
+    points = points.filter((p) => now - p.t < TRAIL_MS);
+    const dpr = win.devicePixelRatio || 1;
+    const w = win.innerWidth;
+    const h = win.innerHeight;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.lineCap = 'round';
+    ctx.shadowColor = 'rgba(255, 0, 0, 0.8)';
+    ctx.shadowBlur = 6;
+    for (let i = 1; i < points.length; i++) {
+      const life = 1 - (now - points[i].t) / TRAIL_MS;
+      ctx.strokeStyle = `rgba(255, 42, 42, ${0.6 * life})`;
+      ctx.lineWidth = 1.5 + 5 * life;
+      ctx.beginPath();
+      ctx.moveTo(points[i - 1].x, points[i - 1].y);
+      ctx.lineTo(points[i].x, points[i].y);
+      ctx.stroke();
+    }
+    if (points.length) frame = win.requestAnimationFrame(draw);
+  };
+  return {
+    push: (x, y) => {
+      points.push({ x, y, t: performance.now() });
+      if (!frame) frame = win.requestAnimationFrame(draw);
+    },
+    dispose: () => {
+      win.cancelAnimationFrame(frame);
+      canvas.remove();
+    },
+  };
+}
+
+/**
  * The laser pointer: a red dot that follows the mouse while presenting, toggled
- * with L (Ctrl+L as in PowerPoint). The present windows hide the cursor, so the
- * dot is the only pointer the audience sees.
+ * with L (Ctrl+L as in PowerPoint), smearing behind it as it moves if the
+ * presenter opted in (LASER_TRAIL_KEY). The present
+ * windows hide the cursor, so the dot is the only pointer the audience sees.
  */
 export function bindLaserPointer(target: Window | HTMLElement): {
   toggle: () => boolean;
@@ -30,9 +104,11 @@ export function bindLaserPointer(target: Window | HTMLElement): {
   dot.hidden = true;
   dot.style.transform = 'translate(-100px, -100px)';
   doc.body.appendChild(dot);
+  const trail = laserTrailOn(doc) ? createLaserTrail(doc) : null;
+  if (trail) trails.set(dot, trail.push);
   const onMove = (ev: Event) => {
     const e = ev as MouseEvent;
-    dot.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    moveDot(dot, e.clientX, e.clientY);
   };
   target.addEventListener('mousemove', onMove);
   return {
@@ -41,6 +117,7 @@ export function bindLaserPointer(target: Window | HTMLElement): {
     visible: () => !dot.hidden,
     dispose: () => {
       target.removeEventListener('mousemove', onMove);
+      trail?.dispose();
       dot.remove();
     },
   };
@@ -56,7 +133,7 @@ export function pointLaserAt(stage: Element | null, at: { x: number; y: number }
   dot.hidden = !at;
   if (!at) return;
   const r = stage.getBoundingClientRect();
-  dot.style.transform = `translate(${r.left + at.x * r.width}px, ${r.top + at.y * r.height}px)`;
+  moveDot(dot, r.left + at.x * r.width, r.top + at.y * r.height);
 }
 
 export function bindPresentKeys(

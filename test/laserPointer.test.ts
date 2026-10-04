@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { emptyDeck } from '../src/shared/deck.js';
 import type { PresentationCommand } from '../src/shared/ipc.js';
-import { bindPresentKeys, pointLaserAt } from '../src/renderer/player/keys.js';
+import { bindPresentKeys, LASER_TRAIL_KEY, pointLaserAt } from '../src/renderer/player/keys.js';
 import type { Player } from '../src/renderer/player/player.js';
 import { createSpeakerView } from '../src/renderer/presenter/speakerView.js';
 
@@ -66,5 +66,53 @@ describe('laser pointer', () => {
     pointLaserAt(stage, null);
     expect(dot.hidden).toBe(true);
     unbind();
+  });
+
+  it('smears behind the moving dot only when opted in, fading out once the mouse rests', () => {
+    // Off by default: no trail at all.
+    const unbound = bindPresentKeys(window, {} as Player);
+    expect(document.querySelector('.laser-trail')).toBeNull();
+    unbound();
+    localStorage.setItem(LASER_TRAIL_KEY, 'true');
+
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
+    const strokes: number[] = [];
+    const ctx = {
+      setTransform() {}, clearRect() {}, beginPath() {}, moveTo() {}, lineTo() {},
+      stroke() { strokes.push(this.lineWidth); },
+      lineWidth: 0, lineCap: '', shadowColor: '', shadowBlur: 0, strokeStyle: '',
+    };
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as never);
+    const unbind = bindPresentKeys(window, {} as Player);
+    const move = (x: number) => window.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: 200 }));
+
+    // Off: moving leaves no trail.
+    move(100);
+    move(200);
+    vi.advanceTimersByTime(50);
+    expect(strokes).toEqual([]);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'l' }));
+    for (let x = 100; x <= 400; x += 50) {
+      move(x);
+      vi.advanceTimersByTime(16);
+    }
+    // One frame: segments behind the dot, oldest first and thinnest.
+    strokes.splice(0);
+    vi.advanceTimersByTime(16);
+    const frame = strokes.splice(0);
+    expect(frame.length).toBeGreaterThan(0);
+    expect(frame.at(-1)!).toBeGreaterThan(frame[0]);
+
+    // At rest it fades away, and then no more frames are drawn.
+    vi.advanceTimersByTime(400);
+    strokes.splice(0);
+    vi.advanceTimersByTime(200);
+    expect(strokes).toEqual([]);
+
+    unbind();
+    expect(document.querySelector('.laser-trail')).toBeNull();
+    vi.useRealTimers();
+    localStorage.removeItem(LASER_TRAIL_KEY);
   });
 });

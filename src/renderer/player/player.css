@@ -232,7 +232,17 @@
   z-index: 2147483647;
 }
 .laser-pointer[hidden],
-body:has(.stage.blanked) > .laser-pointer { display: none; }
+body:has(.stage.blanked) > .laser-pointer,
+body:has(.stage.blanked) > .laser-trail { display: none; }
+/* Its smear (keys.ts), drawn over the whole window just under the dot. */
+.laser-trail {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2147483646;
+}
 body:has(> .laser-pointer:not([hidden])) * { cursor: none !important; }
 
 /* The pen (ink.ts): ink over the slide, and a crosshair over the slide it draws on. */
