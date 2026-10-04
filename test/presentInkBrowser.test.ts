@@ -69,6 +69,10 @@ describe.skipIf(!electronBinary)('presentation ink', () => {
     await audience.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: stage.x + stage.w / 2, y: stage.y + stage.h / 2 });
     expect(await cursor()).toBe('default');
 
+    // Presenting without Speaker View, the audience screen has the toolbar.
+    const toolbarDisplay = () => audience!.evaluate<string>(`getComputedStyle(document.querySelector('.present-toolbar')).display`);
+    expect(await toolbarDisplay()).not.toBe('none');
+
     // The laser's smear is opt-in: a first show has none.
     expect(await audience.evaluate<boolean>(`Boolean(document.querySelector('.laser-trail'))`)).toBe(false);
 
@@ -148,6 +152,16 @@ describe.skipIf(!electronBinary)('presentation ink', () => {
       .find((item) => item.textContent === 'Show saved ink')?.getAttribute('aria-checked') ?? null`)).toBe('false');
     await app.cdp.call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
     await app.cdp.call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+
+    // With Speaker View driving the show, the audience screen has no toolbar:
+    // Speaker View's footer has those controls.
+    await app.cdp.click('[aria-label="Presentation options"]');
+    await app.cdp.clickByText('.shape-menu-item', 'Present in Speaker View');
+    audience = await Cdp.connect((await findTarget(app.debugPort, AUDIENCE, app.log)).webSocketDebuggerUrl!);
+    await eventually(() => audience!.evaluate<boolean>(`document.body.classList.contains('speaker-view-open')`),
+      'the audience window was not told Speaker View is open');
+    expect(await toolbarDisplay()).toBe('none');
+    await endShow();
 
     // It is one change: one undo (a real Ctrl+Z) takes all of it back off.
     await app.cdp.call('Page.bringToFront');

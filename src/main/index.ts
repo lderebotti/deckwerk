@@ -200,6 +200,13 @@ function openSpeakerWindow(
     state.presentationDisplays = null;
     if (state.present && !state.present.isDestroyed()) state.present.close();
   });
+  // The audience hides its slideshow toolbar while Speaker View has the controls.
+  const audience = state.present;
+  if (audience && !audience.isDestroyed()) {
+    const tell = () => audience.webContents.send(IPC.presentCommand, { type: 'speakerViewOpened' });
+    if (audience.webContents.isLoading()) audience.webContents.once('did-finish-load', tell);
+    else tell();
+  }
   return win;
 }
 

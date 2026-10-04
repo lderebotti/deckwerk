@@ -126,6 +126,8 @@ export type { AgentContextDraft, AgentRequest, AgentResponse };
 
 export type PresentationCommand =
   | { type: 'next' | 'prev' | 'toggleBlank' | 'swapDisplays' | 'exit' }
+  /** From the main process to the audience: a Speaker View now drives this show. */
+  | { type: 'speakerViewOpened' }
   | { type: 'goTo'; slide: number }
   /** Speaker View's laser, as a fraction of the slide; null hides it. */
   | { type: 'laser'; at: { x: number; y: number } | null }

@@ -282,6 +282,8 @@ body:not(.inking) .ink-palette { display: none; }
   transition: opacity 160ms ease;
 }
 .present-toolbar.shown { opacity: 1; pointer-events: auto; }
+/* With Speaker View open its footer has these controls; the audience sees only the slide. */
+body.speaker-view-open .present-toolbar { display: none; }
 .present-toolbar > .ink-palette { margin-left: 4px; padding-left: 8px; border-left: 1px solid var(--line, #2c2e3d); }
 .present-tool {
   display: grid;

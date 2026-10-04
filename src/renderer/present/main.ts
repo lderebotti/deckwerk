@@ -129,6 +129,9 @@ function retreat(): void {
 }
 
 window.api.onPresentCommand((command: PresentationCommand) => {
+  // Speaker View has the controls, so the slideshow toolbar stays off this
+  // screen; the audience sees only the slide (player.css).
+  if (command.type === 'speakerViewOpened') document.body.classList.add('speaker-view-open');
   if (!player) return;
   if (command.type === 'next') advance();
   else if (command.type === 'prev') retreat();
