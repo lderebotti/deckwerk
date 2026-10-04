@@ -63,6 +63,12 @@ describe.skipIf(!electronBinary)('presentation ink', () => {
       'the audience window never settled on a slide',
     ))!;
 
+    // The present window hides the cursor, but moving the mouse brings it back.
+    const cursor = () => audience!.evaluate<string>(`getComputedStyle(document.querySelector('.stage [data-slide-id]')).cursor`);
+    expect(await cursor()).toBe('none');
+    await audience.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: stage.x + stage.w / 2, y: stage.y + stage.h / 2 });
+    expect(await cursor()).toBe('default');
+
     // The laser's smear is opt-in: a first show has none.
     expect(await audience.evaluate<boolean>(`Boolean(document.querySelector('.laser-trail'))`)).toBe(false);
 

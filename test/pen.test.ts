@@ -143,12 +143,16 @@ describe('pen', () => {
     vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue(rect(16, 1000, 300, 40));
     const move = (x: number, y: number) => pointer(window, 'mousemove', x, y, 0);
 
-    // Hidden until the mouse moves, and gone again once it rests.
+    // Hidden until the mouse moves, and gone again once it rests; the cursor
+    // the present window hides comes and goes with it.
     expect(bar.classList.contains('shown')).toBe(false);
+    expect(document.body.classList.contains('pointer-moving')).toBe(false);
     move(900, 400);
     expect(bar.classList.contains('shown')).toBe(true);
+    expect(document.body.classList.contains('pointer-moving')).toBe(true);
     vi.advanceTimersByTime(3000);
     expect(bar.classList.contains('shown')).toBe(false);
+    expect(document.body.classList.contains('pointer-moving')).toBe(false);
 
     // Its buttons act without the click advancing the slide.
     tool('Next').click();

@@ -173,6 +173,15 @@ export function bindPresentKeys(
     palette: createInkPalette(doc, ink.pen),
   });
   target.addEventListener('mousemove', toolbar.reveal);
+  // The present window hides the cursor (present/index.html); as in PowerPoint
+  // it comes back while the mouse moves and goes again once it rests.
+  let cursorTimer: ReturnType<typeof setTimeout> | undefined;
+  const showCursor = () => {
+    doc.body.classList.add('pointer-moving');
+    clearTimeout(cursorTimer);
+    cursorTimer = setTimeout(() => doc.body.classList.remove('pointer-moving'), 2500);
+  };
+  target.addEventListener('mousemove', showCursor);
   const onKey = (ev: Event) => {
     const e = ev as KeyboardEvent;
     // Never steal keys from a focused field; the editor preview shares this map.
@@ -242,6 +251,9 @@ export function bindPresentKeys(
   return () => {
     target.removeEventListener('keydown', onKey);
     target.removeEventListener('mousemove', toolbar.reveal);
+    target.removeEventListener('mousemove', showCursor);
+    clearTimeout(cursorTimer);
+    doc.body.classList.remove('pointer-moving');
     laser.dispose();
     ink.dispose();
     toolbar.dispose();
