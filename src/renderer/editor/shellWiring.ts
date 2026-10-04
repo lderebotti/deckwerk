@@ -566,10 +566,14 @@ export const FORMAT_PAINTER_ICON =
  * selected object to copy from.
  */
 export function formatPainterButton(canvas: EditorCanvas, store: EditorStore): HTMLButtonElement {
-  const button = barIconButton('Format', FORMAT_PAINTER_ICON, () => {
+  const button = barIconButton('Format painter', FORMAT_PAINTER_ICON, () => {
     if (canvas.isFormatPainting()) canvas.stopFormatPainter();
     else canvas.startFormatPainter(false);
   });
+  // Icon only, as Google Slides shows it: a label pushed the toolbar into its
+  // compact "More" layout at ordinary window widths.
+  button.querySelector('span')?.remove();
+  button.setAttribute('aria-label', 'Format painter');
   button.title = 'Format painter: copy this object\'s formatting to the next object you click.'
     + ' Double-click to paint several; Esc stops.';
   // The two clicks of a double-click arm and disarm; the dblclick that follows arms for good.
