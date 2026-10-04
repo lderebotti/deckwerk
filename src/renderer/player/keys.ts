@@ -15,13 +15,16 @@ export interface KeyHandlers {
 
 /**
  * The laser's smear is opt-in: on only when this preference is "true". Every
- * DeckWerk window shares one origin, so the editor sets it and the presenting
- * windows read it.
+ * DeckWerk window shares one origin and the laser reads it as it moves, so
+ * switching it in Speaker View reaches the audience window straight away.
  */
-export const LASER_TRAIL_KEY = 'deckwerk.laserTrail';
-const laserTrailOn = (doc: Document) => {
-  try { return doc.defaultView?.localStorage.getItem(LASER_TRAIL_KEY) === 'true'; } catch { return false; }
-};
+const LASER_TRAIL_KEY = 'deckwerk.laserTrail';
+export function laserTrailEnabled(): boolean {
+  try { return localStorage.getItem(LASER_TRAIL_KEY) === 'true'; } catch { return false; }
+}
+export function setLaserTrail(on: boolean): void {
+  try { localStorage.setItem(LASER_TRAIL_KEY, String(on)); } catch { /* not remembered */ }
+}
 
 /** How long the laser's smear lingers behind the dot, in milliseconds. */
 const TRAIL_MS = 120;
@@ -89,7 +92,7 @@ function createLaserTrail(doc: Document): { push: (x: number, y: number) => void
 /**
  * The laser pointer: a red dot that follows the mouse while presenting, toggled
  * with L (Ctrl+L as in PowerPoint), smearing behind it as it moves if the
- * presenter opted in (LASER_TRAIL_KEY). The present
+ * presenter opted in (setLaserTrail). The present
  * windows hide the cursor, so the dot is the only pointer the audience sees.
  */
 export function bindLaserPointer(target: Window | HTMLElement): {
@@ -104,8 +107,11 @@ export function bindLaserPointer(target: Window | HTMLElement): {
   dot.hidden = true;
   dot.style.transform = 'translate(-100px, -100px)';
   doc.body.appendChild(dot);
-  const trail = laserTrailOn(doc) ? createLaserTrail(doc) : null;
-  if (trail) trails.set(dot, trail.push);
+  // The trail's canvas is made the first time it has something to draw.
+  let trail: ReturnType<typeof createLaserTrail> | null = null;
+  trails.set(dot, (x, y) => {
+    if (laserTrailEnabled()) (trail ??= createLaserTrail(doc)).push(x, y);
+  });
   const onMove = (ev: Event) => {
     const e = ev as MouseEvent;
     moveDot(dot, e.clientX, e.clientY);
