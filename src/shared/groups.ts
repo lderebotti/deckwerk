@@ -235,3 +235,97 @@ export function groupViolations(elements: Elements): string[] {
   }
   return problems;
 }
+
+export interface Box { x: number; y: number; w: number; h: number }
+
+/**
+ * The objects a selection acts as: each group it holds whole is one unit,
+ * and every other selected object is a unit of its own. Align, distribute
+ * and the Props geometry fields move and size units, never a group's
+ * members one by one.
+ */
+export function selectionUnits(elements: Elements, selection: ReadonlySet<string>): Array<{ id: string; members: string[] }> {
+  const groups = selectedGroups(elements, selection);
+  const grouped = new Set(groups.flatMap((group) => group.members));
+  return [
+    ...groups,
+    ...elements
+      .filter((element) => selection.has(element.id) && !grouped.has(element.id))
+      .map((element) => ({ id: element.id, members: [element.id] })),
+  ];
+}
+
+/** An element's axis-aligned bounds as drawn, turned about its centre. */
+function drawnBounds(element: SlideElement): Box {
+  if (!element.rot) return { x: element.x, y: element.y, w: element.w, h: element.h };
+  const radians = (element.rot * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(radians));
+  const sin = Math.abs(Math.sin(radians));
+  const w = element.w * cos + element.h * sin;
+  const h = element.w * sin + element.h * cos;
+  return { x: element.x + (element.w - w) / 2, y: element.y + (element.h - h) / 2, w, h };
+}
+
+/**
+ * A unit's box: a lone object's own box (as its geometry fields read), a
+ * group's the axis-aligned box around its members as drawn.
+ */
+export function unitBox(elements: Elements, members: readonly string[]): Box {
+  const found = elements.filter((element) => members.includes(element.id));
+  if (found.length === 1) {
+    const [only] = found;
+    return { x: only.x, y: only.y, w: only.w, h: only.h };
+  }
+  const boxes = found.map(drawnBounds);
+  const x = Math.min(...boxes.map((box) => box.x));
+  const y = Math.min(...boxes.map((box) => box.y));
+  return {
+    x,
+    y,
+    w: Math.max(...boxes.map((box) => box.x + box.w)) - x,
+    h: Math.max(...boxes.map((box) => box.y + box.h)) - y,
+  };
+}
+
+/**
+ * A member's box after its group's box went from `from` to `to`: its centre
+ * keeps its place within the group and its size scales with it. Text keeps
+ * its type size, as in PowerPoint; only the box changes.
+ */
+export function placeInScaledBox(origin: Box, from: Box, to: Box): Box {
+  const fx = to.w / from.w;
+  const fy = to.h / from.h;
+  const w = origin.w * fx;
+  const h = origin.h * fy;
+  return {
+    x: to.x + (origin.x + origin.w / 2 - from.x) * fx - w / 2,
+    y: to.y + (origin.y + origin.h / 2 - from.y) * fy - h / 2,
+    w,
+    h,
+  };
+}
+
+/**
+ * Move and size a unit so its box takes the given edges. A lone object takes
+ * them directly; a group's members are placed inside the new box.
+ */
+export function fitUnit(elements: SlideElement[], members: readonly string[], to: Partial<Box>): void {
+  const from = unitBox(elements, members);
+  const target = { ...from, ...to, w: Math.max(1, to.w ?? from.w), h: Math.max(1, to.h ?? from.h) };
+  for (const element of elements) {
+    if (!members.includes(element.id)) continue;
+    const placed = members.length === 1 ? target : placeInScaledBox(element, from, target);
+    const before = { x: element.x, y: element.y, w: element.w, h: element.h };
+    element.x = Math.round(placed.x);
+    element.y = Math.round(placed.y);
+    element.w = Math.max(1, Math.round(placed.w));
+    element.h = Math.max(1, Math.round(placed.h));
+    // A curve's bend point travels with its box.
+    if (element.type === 'shape' && element.control) {
+      element.control = {
+        x: Math.round(element.x + (element.control.x - before.x) * (element.w / before.w)),
+        y: Math.round(element.y + (element.control.y - before.y) * (element.h / before.h)),
+      };
+    }
+  }
+}

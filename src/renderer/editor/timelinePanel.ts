@@ -1,4 +1,5 @@
 import type { Slide, TimelineEntry } from '@shared/deck.js';
+import { selectedGroups } from '@shared/groups.js';
 import { makeId } from '@shared/geometry.js';
 import { expandTimeline, groupIntoSteps, isParagraphBuild } from '@shared/timeline.js';
 import { countParagraphs, paragraphTexts } from '@shared/paragraphs.js';
@@ -141,11 +142,16 @@ export class TimelinePanel {
     add.className = 'primary panel-action';
     add.textContent = 'Add animation';
     add.disabled = selection.size === 0;
+    // A group held whole builds as one: its members appear on the same click.
+    const groups = selectedGroups(slide.elements, selection);
+    const oneGroup = groups.length === 1 && groups[0].members.length === selected.length;
     add.title = add.disabled
       ? 'Select an element on the slide or in the list first'
       : selected.length === 1
         ? `Hide “${describeElement(selected[0])}” until the next click`
-        : `Hide the ${selected.length} selected elements until the next click`;
+        : oneGroup
+          ? 'Hide the group until the next click'
+          : `Hide the ${selected.length} selected elements until the next click`;
     add.addEventListener('click', () => this.addAnimationForSelection());
     elements.section.appendChild(add);
 

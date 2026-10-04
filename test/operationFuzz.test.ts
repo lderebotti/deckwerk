@@ -13,7 +13,7 @@ import { EditorCanvas } from '../src/renderer/editor/canvas.js';
 import { EditorStore } from '../src/renderer/editor/store.js';
 import { findRenderDivergences, formatDivergence } from '../src/renderer/editor/renderInvariants.js';
 import { installCanvasDomShims } from './support/canvasHarness.js';
-import { clickUnit, drillInto, groupViolations } from '../src/shared/groups.js';
+import { clickUnit, drillInto, fitUnit, groupViolations, selectionUnits } from '../src/shared/groups.js';
 import { extraFuzzSeeds } from './support/fuzzSeeds.js';
 
 /**
@@ -397,6 +397,19 @@ function buildOps(store: EditorStore, canvas: EditorCanvas, random: () => number
       },
     },
     { name: 'ungroup selection', run: () => { store.ungroupSelection(); } },
+    {
+      // What Props' geometry fields and Align do to a selection holding groups.
+      name: 'fit selection units',
+      run: () => {
+        const index = store.get().slideIndex;
+        const units = selectionUnits(store.get().deck.slides[index].elements, store.get().selection);
+        if (units.length === 0) return;
+        const box = pick([{ x: round(random() * 1600) }, { y: round(random() * 900) }, { w: 40 + round(random() * 600) }, { h: 40 + round(random() * 400) }]);
+        store.commit((deck: Deck) => {
+          for (const unit of units) fitUnit(deck.slides[index].elements, unit.members, box);
+        }, { label: 'fit units' });
+      },
+    },
     {
       name: 'click into a group',
       run: () => {

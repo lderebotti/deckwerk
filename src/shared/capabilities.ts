@@ -312,6 +312,28 @@ export function capabilities(): Capability[] {
       ],
     },
     {
+      id: 'groups',
+      what: 'Objects grouped so the editor selects, moves, sizes and turns them as one.',
+      when: 'A diagram\'s boxes and arrows, a figure with its caption, a badge on a photo.',
+      notes: [
+        'groupIds lists the groups an element belongs to, outermost first; elements sharing an id are that group, and groups nest.',
+        'In authored HTML, data-group="name" on a wrapper groups everything inside it; an export writes each object\'s path as data-group="outer inner". Keep it when editing, or the save ungroups them.',
+        'A group is a label, not a container: each member stays an ordinary object with its own builds and Morph pairing.',
+      ],
+      elements: [
+        text('cap-group-title', 'A labelled box, grouped', TITLE, { class: ['role-title'] }),
+        {
+          id: 'cap-group-box', type: 'shape', x: 560, y: 380, w: 800, h: 300, rot: 0, z: 2,
+          opacity: 1, class: [], style: {}, shape: 'rect', fill: '#dbeafe', stroke: '#2563eb',
+          strokeWidth: 4, radius: 24, arrowStart: false, arrowEnd: false, path: null, pathSize: null,
+          groupIds: ['cap-group'],
+        },
+        text('cap-group-label', 'Encoder', { x: 560, y: 480, w: 800, h: 100 }, {
+          class: ['role-heading'], align: 'center', valign: 'middle', z: 3, groupIds: ['cap-group'],
+        }),
+      ],
+    },
+    {
       id: 'builds',
       what: 'Timeline builds: reveal objects on click or after the previous step.',
       when: 'Walking an audience through a slide one point at a time.',

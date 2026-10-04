@@ -1,5 +1,5 @@
 import type { Deck, MediaEffect, Slide, SlideElement } from '@shared/deck.js';
-import { groupElements, selectedGroups } from '@shared/groups.js';
+import { fitUnit, groupElements, selectedGroups, selectionUnits, unitBox } from '@shared/groups.js';
 import {
   paragraphsToList,
   paragraphsToOrderedList,
@@ -692,6 +692,24 @@ export class Inspector {
   private alignSection(): HTMLElement {
     const wrap = group('Align');
     const apply = (mode: AlignMode) => {
+      const slide = this.store.slide;
+      if (!slide) return;
+      // A group held whole lines up as one box, keeping its own layout.
+      const units = selectionUnits(slide.elements, this.store.get().selection);
+      if (units.some((unit) => unit.members.length > 1)) {
+        const rects = units.map((unit) => ({ id: unit.id, ...unitBox(slide.elements, unit.members) }));
+        const moves = alignElements(rects, mode);
+        if (moves.size === 0) return;
+        const index = this.store.get().slideIndex;
+        this.store.commit((deck) => {
+          const elements = deck.slides[index].elements;
+          for (const unit of units) {
+            const move = moves.get(unit.id);
+            if (move) fitUnit(elements, unit.members, move);
+          }
+        }, { label: 'Align objects' });
+        return;
+      }
       const rects = this.store
         .selectedElements()
         .map((e) => ({ id: e.id, x: e.x, y: e.y, w: e.w, h: e.h }));
@@ -749,6 +767,13 @@ export class Inspector {
     const wrap = geometry.content;
     const first = selected[0];
     const multi = selected.length > 1;
+    // A group held whole reads and edits as its own box: typing an X moves
+    // the group, a W scales it, rather than lining its members up.
+    const slide = this.store.slide;
+    const selection = this.store.get().selection;
+    const units = slide ? selectionUnits(slide.elements, selection) : [];
+    const hasGroups = units.some((unit) => unit.members.length > 1);
+    const boxes = slide ? units.map((unit) => unitBox(slide.elements, unit.members)) : [];
 
     const row = document.createElement('div');
     row.className = 'field-grid';
@@ -756,8 +781,18 @@ export class Inspector {
       row.appendChild(
         numberField(
           key.toUpperCase(),
-          multi ? commonValue(selected.map((element) => element[key])) : first[key],
+          hasGroups ? commonValue(boxes.map((box) => Math.round(box[key])))
+            : multi ? commonValue(selected.map((element) => element[key])) : first[key],
           (v) => {
+            if (hasGroups) {
+              const index = this.store.get().slideIndex;
+              this.store.commit((deck) => {
+                const elements = deck.slides[index].elements;
+                const value = key === 'w' || key === 'h' ? Math.max(8, v) : v;
+                for (const unit of units) fitUnit(elements, unit.members, { [key]: value });
+              }, { label: key === 'w' || key === 'h' ? 'Resize objects' : 'Move objects' });
+              return;
+            }
             this.store.updateSelected((el) => {
               if (key === 'w' || key === 'h') el[key] = Math.max(8, v);
               else {
@@ -784,7 +819,9 @@ export class Inspector {
         this.store.updateSelected((el) => (el.z = Math.round(v))),
       ),
     );
-    wrap.appendChild(row2);
+    // One rotation or one Z for every member would scatter or flatten a group;
+    // it turns with the gesture modifier on its frame and restacks with Arrange.
+    if (!hasGroups) wrap.appendChild(row2);
 
     const bottom = document.createElement('div');
     bottom.className = 'geometry-bottom-row';
@@ -831,7 +868,6 @@ export class Inspector {
     // A title or body box that has drifted off its layout slot has no way
     // back but trial and error; give it one. Shown only for the slot's own box
     // on a slide that has a layout, and idle while the box is already there.
-    const slide = this.store.slide;
     if (!multi && slide && layoutGeometryFor(slide, first, this.store.get().deck.layoutMasters)) {
       const aligned = elementFollowsLayout(slide, first, this.store.get().deck.layoutMasters);
       const row = document.createElement('div');
@@ -879,9 +915,16 @@ export class Inspector {
     const zs = slide.elements.map((e) => e.z);
     const min = Math.min(...zs, 0);
     const max = Math.max(...zs, 0);
+    // Ranked, so the selected objects (a group's members among them) keep
+    // their order among themselves instead of tying on one value.
+    const selected = this.store.selectedElements();
+    const rank = new Map([...selected]
+      .sort((a, b) => a.z - b.z)
+      .map((element, index) => [element.id, index]));
     this.store.updateSelected((el) => {
-      if (dir === 'front') el.z = max + 1;
-      else if (dir === 'back') el.z = min - 1;
+      const at = rank.get(el.id) ?? 0;
+      if (dir === 'front') el.z = max + 1 + at;
+      else if (dir === 'back') el.z = min - selected.length + at;
       else if (dir === 'forward') el.z += 1;
       else el.z -= 1;
     });
