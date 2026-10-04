@@ -143,16 +143,25 @@ describe('pen', () => {
     vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue(rect(16, 1000, 300, 40));
     const move = (x: number, y: number) => pointer(window, 'mousemove', x, y, 0);
 
-    // Hidden until the mouse moves, and gone again once it rests; the cursor
-    // the present window hides comes and goes with it.
+    // The toolbar shows only while the pointer is in its corner. The cursor,
+    // which the present window hides, comes back on any move and goes once
+    // the mouse rests.
     expect(bar.classList.contains('shown')).toBe(false);
     expect(document.body.classList.contains('pointer-moving')).toBe(false);
     move(900, 400);
-    expect(bar.classList.contains('shown')).toBe(true);
-    expect(document.body.classList.contains('pointer-moving')).toBe(true);
-    vi.advanceTimersByTime(3000);
     expect(bar.classList.contains('shown')).toBe(false);
+    expect(document.body.classList.contains('pointer-moving')).toBe(true);
+    move(200, 990);
+    expect(bar.classList.contains('shown')).toBe(true);
+    vi.advanceTimersByTime(3000);
+    // Resting over it keeps it; the cursor alone rests away.
+    expect(bar.classList.contains('shown')).toBe(true);
     expect(document.body.classList.contains('pointer-moving')).toBe(false);
+    move(900, 400);
+    expect(bar.classList.contains('shown')).toBe(false);
+    move(200, 990);
+    document.documentElement.dispatchEvent(new MouseEvent('mouseleave'));
+    expect(bar.classList.contains('shown')).toBe(false);
 
     // Its buttons act without the click advancing the slide.
     tool('Next').click();
@@ -168,8 +177,7 @@ describe('pen', () => {
     expect(tool('Pen').getAttribute('aria-pressed')).toBe('true');
     expect(document.body.classList.contains('inking')).toBe(true);
 
-    // With a tool in hand, moving over the slide leaves the toolbar away;
-    // coming to its corner brings it back.
+    // With a tool in hand it behaves the same.
     move(900, 400);
     expect(bar.classList.contains('shown')).toBe(false);
     move(200, 990);

@@ -68,6 +68,8 @@ describe.skipIf(!electronBinary)('presentation ink', () => {
     expect(await cursor()).toBe('none');
     await audience.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: stage.x + stage.w / 2, y: stage.y + stage.h / 2 });
     expect(await cursor()).toBe('default');
+    // ...but moving over the slide does not bring up the toolbar; only its corner does.
+    expect(await audience.evaluate<boolean>(`document.querySelector('.present-toolbar').classList.contains('shown')`)).toBe(false);
 
     // Presenting without Speaker View, the audience screen has the toolbar.
     const toolbarDisplay = () => audience!.evaluate<string>(`getComputedStyle(document.querySelector('.present-toolbar')).display`);

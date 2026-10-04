@@ -271,13 +271,12 @@ const ICONS = {
 };
 
 /**
- * The slideshow toolbar, PowerPoint's: bottom left, shown while the mouse
- * moves and gone after it rests, so a presenter on one screen can reach the
- * laser (and switch its trail), the pen and its colours without knowing the
- * keys. While a pointer
- * tool is in use it waits until the mouse comes to its corner, so the ink and
- * the laser are not drawn under a toolbar. Its clicks stop here, so pressing
- * a button never advances the slide.
+ * The slideshow toolbar, PowerPoint's: bottom left, so a presenter on one
+ * screen can reach the laser (and switch its trail), the pen and its colours
+ * without knowing the keys. It shows only while the pointer is in its corner,
+ * over it or within reach of it, and is gone the moment the pointer leaves,
+ * so it never sits over the slide while the presenter points or draws. Its
+ * clicks stop here, so pressing a button never advances the slide.
  */
 function createPresentToolbar(doc: Document, tools: {
   prev: () => void;
@@ -319,37 +318,30 @@ function createPresentToolbar(doc: Document, tools: {
   }
   doc.body.appendChild(bar);
 
-  let hideTimer: ReturnType<typeof setTimeout> | undefined;
-  const hideSoon = () => {
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => {
-      if (!bar.matches(':hover')) bar.classList.remove('shown');
-    }, 2500);
-  };
   const sync = () => {
     laser.setAttribute('aria-pressed', String(tools.laserOn()));
     trail.setAttribute('aria-pressed', String(laserTrailEnabled()));
     pen.setAttribute('aria-pressed', String(tools.penOn()));
   };
+  /** Within this many pixels of the toolbar, the pointer is in its corner. */
+  const REACH = 60;
   const reveal = (event: Event) => {
     const e = event as MouseEvent;
     if (e.buttons) return; // mid-stroke
-    if (tools.laserOn() || tools.penOn()) {
-      const r = bar.getBoundingClientRect();
-      const near = e.clientX <= r.right + 60 && e.clientY >= r.top - 60;
-      if (!near) return;
-    }
-    sync();
-    bar.classList.add('shown');
-    hideSoon();
+    const r = bar.getBoundingClientRect();
+    const near = e.clientX <= r.right + REACH && e.clientY >= r.top - REACH;
+    if (near) sync();
+    bar.classList.toggle('shown', near);
   };
-  bar.addEventListener('mouseleave', hideSoon);
+  // Leaving the window, onto another screen say, leaves the corner too.
+  const hide = () => bar.classList.remove('shown');
+  doc.documentElement.addEventListener('mouseleave', hide);
   sync();
   return {
     sync,
     reveal,
     dispose: () => {
-      clearTimeout(hideTimer);
+      doc.documentElement.removeEventListener('mouseleave', hide);
       bar.remove();
     },
   };
