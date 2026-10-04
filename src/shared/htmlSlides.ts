@@ -68,7 +68,8 @@ export interface MeasuredNode {
 export interface MeasuredSlide {
   id: string | null;
   name: string;
-  notes: string;
+  /** `data-notes`; absent when the section has none, so a replacement keeps the slide's notes. */
+  notes?: string;
   background: { color: string | null; image: string | null };
   morphFromPrevious: boolean;
   morphDuration?: number;
@@ -675,6 +676,14 @@ export function slidesFromMeasured(deck: Deck, measured: MeasuredSlide[]): Slide
       slideId: slide.id ?? nextSlideId(used, index),
       usedIds: used,
     });
+    // A section carries how a slide looks, not its discussion or whether it
+    // is presented, so replacing a slide keeps what the page cannot express.
+    const existing = slide.id === null ? undefined : deck.slides.find((candidate) => candidate.id === slide.id);
+    if (existing) {
+      if (slide.notes === undefined) built.notes = existing.notes;
+      if (existing.comments) built.comments = structuredClone(existing.comments);
+      if (existing.skipped) built.skipped = true;
+    }
     const layout = slide.layout;
     if (layout === undefined) return built;
     if (!FIXED_LAYOUTS.includes(layout as FixedLayout)) {
@@ -723,7 +732,7 @@ export function slideFromMeasured(
   return {
     id: opts.slideId,
     name: measured.name,
-    notes: measured.notes,
+    notes: measured.notes ?? '',
     background: measured.background,
     ...(measured.morphFromPrevious ? { morphFromPrevious: true } : {}),
     ...(measured.morphDuration !== undefined ? { morphDuration: measured.morphDuration } : {}),

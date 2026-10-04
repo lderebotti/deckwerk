@@ -1620,7 +1620,7 @@ export function measureSlides(doc: Document): MeasuredSlide[] {
     return {
       id: root.dataset.slideId ?? null,
       name: root.dataset.name ?? '',
-      notes: root.dataset.notes ?? '',
+      notes: root.dataset.notes,
       background: { color: background, image: image ? image[1] : null },
       morphFromPrevious: root.dataset.morphFromPrevious === 'true',
       ...(root.dataset.layout !== undefined ? {
