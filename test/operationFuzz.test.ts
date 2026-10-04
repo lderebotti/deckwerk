@@ -13,6 +13,7 @@ import { EditorCanvas } from '../src/renderer/editor/canvas.js';
 import { EditorStore } from '../src/renderer/editor/store.js';
 import { findRenderDivergences, formatDivergence } from '../src/renderer/editor/renderInvariants.js';
 import { installCanvasDomShims } from './support/canvasHarness.js';
+import { footerFor } from '../src/shared/footer.js';
 import { extraFuzzSeeds } from './support/fuzzSeeds.js';
 
 /**
@@ -296,6 +297,30 @@ function buildOps(store: EditorStore, canvas: EditorCanvas, random: () => number
         }, { label: 'background' });
       },
     },
+    // The footer is deck state drawn outside every element: a footer edit or a
+    // per-slide opt-out must redraw the canvas even though no element changed.
+    {
+      name: 'set deck footer',
+      run: () => store.commit((deck: Deck) => {
+        deck.footer = random() < 0.25 ? null : {
+          text: pick(['', 'ACME']),
+          date: '',
+          title: random() < 0.5,
+          slideNumber: random() < 0.5,
+          skipFirst: random() < 0.5,
+        };
+      }, { label: 'footer' }),
+    },
+    {
+      name: 'toggle slide footer',
+      run: () => {
+        const index = store.get().slideIndex;
+        store.commit((deck: Deck) => {
+          if (deck.slides[index].hideFooter) delete deck.slides[index].hideFooter;
+          else deck.slides[index].hideFooter = true;
+        }, { label: 'hide footer' });
+      },
+    },
     {
       name: 'set morph id',
       run: () => store.updateSelected((el) => {
@@ -438,7 +463,14 @@ function checkInvariants(
     }
   }
 
-  // 6. The canvas agrees with a fresh render of the same model.
+  // 6. The canvas agrees with a fresh render of the same model, footer
+  //    included: it is drawn outside the elements, so the per-element
+  //    comparison below cannot see a stale one.
+  const expectedFooter = footerFor(state.deck, state.slideIndex);
+  const footerText = slideLayer.querySelector(':scope > .slide > .slide-footer')?.textContent ?? null;
+  const wantText = expectedFooter ? expectedFooter.left + expectedFooter.center + expectedFooter.right : null;
+  if (footerText !== wantText) problems.push(`canvas footer is ${JSON.stringify(footerText)}, expected ${JSON.stringify(wantText)}`);
+
   for (const divergence of findRenderDivergences(slideLayer, slide, (src) => src)) {
     problems.push(formatDivergence(divergence));
   }

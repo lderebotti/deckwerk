@@ -158,6 +158,7 @@ const SLIDE_PROPERTIES: PropertyDoc[] = [
   { path: 'morphFromPrevious', type: 'boolean', description: 'Animate from the preceding slide.', example: true },
   { path: 'morphDuration', type: 'number 100..5000', description: `${MORPH_NAME} duration from the preceding slide, in milliseconds.`, example: 900 },
   { path: 'skipped', type: 'boolean', description: 'Keep the slide but skip it during presentation.', example: false },
+  { path: 'hideFooter', type: 'boolean', description: 'Leave the deck footer off this slide.', example: true },
   { path: 'timeline', type: 'timeline entry[]', description: 'Complete object-build sequence. Targets must remain on this slide.', example: [] },
 ];
 
@@ -170,6 +171,7 @@ const DECK_PROPERTIES: PropertyDoc[] = [
   { path: 'themeStyle.colors.<role>', type: 'CSS color', description: 'Theme background, text, muted, or accent color.', example: '#f7f7f8' },
   { path: 'themeStyle.palette', type: 'CSS color[]', description: 'Theme color palette.', example: ['#101218', '#f7f7f8', '#6ea8fe'] },
   { path: 'morphEasing', type: 'enum', values: ['ease-in-out', 'ease-out', 'linear'], description: `Deck-wide ${MORPH_NAME} easing.`, example: 'ease-in-out' },
+  { path: 'footer.<field>', type: 'string|boolean', description: 'Deck footer: text and date (strings); title, slideNumber and skipFirst (booleans).', example: true },
 ];
 
 export function nativeEditContract(): Record<string, unknown> {
@@ -322,11 +324,12 @@ function unsetPath(target: Record<string, unknown>, path: string): void {
 
 function allowedDeckPath(path: string): boolean {
   return ['title', 'themePreset', 'morphEasing', 'canvas.w', 'canvas.h'].includes(path)
-    || path.startsWith('themeStyle.');
+    || path.startsWith('themeStyle.')
+    || path.startsWith('footer.');
 }
 
 function allowedSlidePath(path: string): boolean {
-  return ['name', 'background.color', 'background.image', 'notes', 'layout', 'morphFromPrevious', 'morphDuration', 'skipped', 'timeline'].includes(path);
+  return ['name', 'background.color', 'background.image', 'notes', 'layout', 'morphFromPrevious', 'morphDuration', 'skipped', 'hideFooter', 'timeline'].includes(path);
 }
 
 function allowedElementPath(type: SlideElement['type'], path: string): boolean {

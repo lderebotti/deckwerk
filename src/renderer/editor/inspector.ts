@@ -485,6 +485,18 @@ export class Inspector {
         mixed: backgrounds.mixed,
       },
     ));
+    if (this.store.get().deck.footer) {
+      const hidden = sharedValue(slides.map((slide) => slide.hideFooter ?? false));
+      section.content.appendChild(mixedCheckboxField('Hide footer', hidden.value, (value) => {
+        this.store.commit((next) => {
+          for (const slide of next.slides) {
+            if (!selectedIds.has(slide.id)) continue;
+            if (value) slide.hideFooter = true;
+            else delete slide.hideFooter;
+          }
+        }, { label: value ? 'Hide footer' : 'Show footer' });
+      }));
+    }
     return section.section;
   }
 

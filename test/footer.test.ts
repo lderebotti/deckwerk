@@ -12,3 +12,15 @@ describe('footerFor', () => {
     expect(footerFor(DeckSchema.parse({ version: 1 }), 1)).toBeNull();
   });
 });
+
+describe('hiding the footer on one slide', () => {
+  it('leaves that slide bare and keeps the others numbered by position', () => {
+    const deck = DeckSchema.parse({
+      version: 1,
+      footer: { slideNumber: true },
+      slides: [{ id: 'a' }, { id: 'b', hideFooter: true }, { id: 'c' }],
+    });
+    expect(footerFor(deck, 1)).toBeNull();
+    expect(footerFor(deck, 2)?.right).toBe('3');
+  });
+});

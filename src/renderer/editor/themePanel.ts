@@ -1,4 +1,5 @@
 import type { Deck, Slide, ThemeStyle } from '@shared/deck.js';
+import { footerControls } from './footerSection.js';
 import type { FixedLayout } from '@shared/layoutMasters.js';
 import {
   THEMES,
@@ -124,6 +125,7 @@ export interface ThemePanel {
 
 export function createThemePanel(deps: ThemePanelDeps): ThemePanel {
   const { store, cssEditor, save, setStatusMessage } = deps;
+  const footer = footerControls(store);
 
   const themeAdoption: ThemeAdoption = {
     scope: 'slides',
@@ -664,7 +666,10 @@ export function createThemePanel(deps: ThemePanelDeps): ThemePanel {
     const layoutsSection = panelSection('Layouts', 'layouts-section');
     layoutsSection.append(mastersHost, mastersRow);
 
-    wrap.append(intro, themeSection, applySection, layoutsSection);
+    const footerSection = panelSection('Footer', 'footer-section');
+    footerSection.append(footer.element);
+
+    wrap.append(intro, themeSection, applySection, layoutsSection, footerSection);
     refreshPreviousBadge();
     renderActiveTheme();
     renderMasters(true);
@@ -820,6 +825,7 @@ export function createThemePanel(deps: ThemePanelDeps): ThemePanel {
   const element = build();
   // The readouts are dry runs over live deck state, so they follow the deck.
   store.subscribe(() => {
+    footer.sync();
     if (draft) return;
     renderMasters();
     renderReadouts();
