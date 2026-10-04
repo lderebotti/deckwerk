@@ -413,10 +413,21 @@ export const CustomThemeSchema = z.object({
   colors: ThemeStyleSchema.shape.colors,
 });
 
+export const FOOTER_DATE_FORMATS = ['long', 'us', 'dmy', 'mdy', 'iso', 'month'] as const;
+
+/** The footer's date: today's (updating, as PowerPoint's "Update automatically") or a fixed day. */
+export const FooterDateSchema = z.object({
+  mode: z.enum(['today', 'fixed']),
+  /** `YYYY-MM-DD`, used by `fixed`. */
+  value: z.string().default(''),
+  format: z.enum(FOOTER_DATE_FORMATS).default('long'),
+});
+
 /** Text repeated along the bottom of every slide: custom text and date left, title centre, number right. */
 export const FooterSchema = z.object({
   text: z.string().default(''),
-  date: z.string().default(''),
+  /** Null shows no date. An older free-text date is dropped rather than failing the deck. */
+  date: FooterDateSchema.nullable().default(null).catch(null),
   title: z.boolean().default(false),
   slideNumber: z.boolean().default(false),
   /** Leave the first slide bare, as a title slide usually wants. */
@@ -476,6 +487,7 @@ export type UnsupportedEl = z.infer<typeof UnsupportedElement>;
 export type Slide = z.infer<typeof SlideSchema>;
 export type Comment = z.infer<typeof CommentSchema>;
 export type Footer = z.infer<typeof FooterSchema>;
+export type FooterDate = z.infer<typeof FooterDateSchema>;
 export type Deck = z.infer<typeof DeckSchema>;
 export type ThemeStyle = z.infer<typeof ThemeStyleSchema>;
 export type ThemeSelection = z.infer<typeof ThemeSelectionSchema>;

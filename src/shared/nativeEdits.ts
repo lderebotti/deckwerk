@@ -171,7 +171,7 @@ const DECK_PROPERTIES: PropertyDoc[] = [
   { path: 'themeStyle.colors.<role>', type: 'CSS color', description: 'Theme background, text, muted, or accent color.', example: '#f7f7f8' },
   { path: 'themeStyle.palette', type: 'CSS color[]', description: 'Theme color palette.', example: ['#101218', '#f7f7f8', '#6ea8fe'] },
   { path: 'morphEasing', type: 'enum', values: ['ease-in-out', 'ease-out', 'linear'], description: `Deck-wide ${MORPH_NAME} easing.`, example: 'ease-in-out' },
-  { path: 'footer.<field>', type: 'string|boolean', description: 'Deck footer: text and date (strings); title, slideNumber and skipFirst (booleans).', example: true },
+  { path: 'footer.<field>', type: 'string|boolean', description: 'Deck footer: text (string); date ({ mode: "today"|"fixed", value: "YYYY-MM-DD", format: "long"|"us"|"dmy"|"mdy"|"iso"|"month" } or null); title, slideNumber and skipFirst (booleans).', example: true },
 ];
 
 export function nativeEditContract(): Record<string, unknown> {

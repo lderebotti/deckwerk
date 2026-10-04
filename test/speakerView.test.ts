@@ -69,7 +69,7 @@ describe('speaker view', () => {
   it('shows the deck footer on both previews, numbered by deck position', () => {
     const view = open();
     const deck = deckOf(['Intro', 'Backup', 'Results'], [1]);
-    deck.footer = { text: '', date: '', title: false, slideNumber: true, skipFirst: false };
+    deck.footer = { text: '', date: null, title: false, slideNumber: true, skipFirst: false };
     view.setDeck(deck);
     view.setState(state({ cursor: { slide: 0, step: 0 } }));
 

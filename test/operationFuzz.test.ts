@@ -304,7 +304,7 @@ function buildOps(store: EditorStore, canvas: EditorCanvas, random: () => number
       run: () => store.commit((deck: Deck) => {
         deck.footer = random() < 0.25 ? null : {
           text: pick(['', 'ACME']),
-          date: '',
+          date: random() < 0.5 ? null : { mode: 'fixed', value: '2026-10-03', format: pick(['long', 'iso'] as const) },
           title: random() < 0.5,
           slideNumber: random() < 0.5,
           skipFirst: random() < 0.5,

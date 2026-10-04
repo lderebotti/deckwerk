@@ -43,6 +43,49 @@ describe('footer controls in Design', () => {
   });
 });
 
+describe('the footer date in Design', () => {
+  beforeEach(() => document.body.replaceChildren());
+
+  const row = (host: HTMLElement, label: string): HTMLElement => [...host.querySelectorAll<HTMLElement>('.field')]
+    .find((candidate) => candidate.querySelector('span')?.textContent === label)!;
+
+  it('picks a fixed day from the calendar field and offers each format as that day', () => {
+    const store = new EditorStore(emptyDeck('Talk'), '/tmp/footer');
+    const footer = footerControls(store);
+    store.subscribe(() => footer.sync());
+    const mode = row(footer.element, 'Date').querySelector('select')!;
+    expect(mode.value).toBe('none');
+    expect(row(footer.element, 'Day').hidden).toBe(true);
+    expect(row(footer.element, 'Format').hidden).toBe(true);
+
+    mode.value = 'fixed';
+    mode.dispatchEvent(new Event('change'));
+    const day = row(footer.element, 'Day').querySelector('input')!;
+    expect(day.type).toBe('date');
+    expect(row(footer.element, 'Day').hidden).toBe(false);
+    expect(store.get().deck.footer?.date?.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    change(day, '2026-10-03');
+    const format = row(footer.element, 'Format').querySelector('select')!;
+    expect([...format.options].map((option) => option.text)).toEqual([
+      '3 October 2026', 'October 3, 2026', '03/10/2026', '10/03/2026', '2026-10-03', 'October 2026',
+    ]);
+    format.value = 'iso';
+    format.dispatchEvent(new Event('change'));
+    expect(store.get().deck.footer?.date).toEqual({ mode: 'fixed', value: '2026-10-03', format: 'iso' });
+
+    mode.value = 'today';
+    mode.dispatchEvent(new Event('change'));
+    expect(store.get().deck.footer?.date).toMatchObject({ mode: 'today', format: 'iso' });
+    expect(row(footer.element, 'Day').hidden).toBe(true);
+
+    mode.value = 'none';
+    mode.dispatchEvent(new Event('change'));
+    // Nothing else was on, so the footer is gone altogether.
+    expect(store.get().deck.footer).toBeNull();
+  });
+});
+
 describe('hiding the footer from Props', () => {
   beforeEach(() => {
     (globalThis as unknown as { window: Window }).window.api = { assetUrl: (src: string) => src } as never;
@@ -66,7 +109,7 @@ describe('hiding the footer from Props', () => {
 
     expect(hideFooter()).toBeNull();
     store.commit((deck) => {
-      deck.footer = { text: 'ACME', date: '', title: false, slideNumber: false, skipFirst: false };
+      deck.footer = { text: 'ACME', date: null, title: false, slideNumber: false, skipFirst: false };
     });
     change(hideFooter()!, true);
     expect(store.get().deck.slides[0].hideFooter).toBe(true);

@@ -941,7 +941,7 @@ describe('footer in the slide rail', () => {
     expect(footers(host)).toEqual([null, null]);
 
     store.commit((deck) => {
-      deck.footer = { text: 'ACME', date: '', title: false, slideNumber: true, skipFirst: false };
+      deck.footer = { text: 'ACME', date: null, title: false, slideNumber: true, skipFirst: false };
     });
     expect(footers(host)).toEqual(['ACME1', 'ACME2']);
 

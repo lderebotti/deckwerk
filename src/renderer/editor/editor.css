@@ -3597,6 +3597,9 @@ select.panel-action-select {
   background-position: right 8px center;
 }
 .field select { border-radius: 6px; }
+/* The date field's calendar button, dimmed like the dropdown chevron. */
+.field input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+.field input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .timeline-row select { padding-right: 20px; background-position: right 6px center; }
 
 /* --- shape insert menu (custom dropdown: options carry icons) --- */

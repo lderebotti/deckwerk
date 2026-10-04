@@ -1,7 +1,8 @@
-import type { Footer } from '@shared/deck.js';
+import { FOOTER_DATE_FORMATS, type Footer, type FooterDate } from '@shared/deck.js';
+import { formatDay, localDay } from '@shared/footer.js';
 import type { EditorStore } from './store.js';
 
-const NONE: Footer = { text: '', date: '', title: false, slideNumber: false, skipFirst: false };
+const NONE: Footer = { text: '', date: null, title: false, slideNumber: false, skipFirst: false };
 
 /**
  * The deck-wide footer controls in the Design panel. Each field commits on
@@ -19,19 +20,54 @@ export function footerControls(store: EditorStore): { element: HTMLElement; sync
       deck.footer = empty ? null : next;
     }, { label });
   };
-
-  const texts = (['text', 'date'] as const).map((key) => {
+  const field = (label: string, control: HTMLElement): HTMLLabelElement => {
     const row = document.createElement('label');
     row.className = 'field';
     const name = document.createElement('span');
-    name.textContent = key === 'text' ? 'Text' : 'Date';
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.addEventListener('change', () => set({ [key]: input.value }, `Change footer ${key}`));
-    row.append(name, input);
+    name.textContent = label;
+    row.append(name, control);
     element.appendChild(row);
-    return { key, input };
+    return row;
+  };
+  const select = (options: Array<[string, string]>): HTMLSelectElement => {
+    const control = document.createElement('select');
+    for (const [value, text] of options) control.add(new Option(text, value));
+    return control;
+  };
+
+  const text = document.createElement('input');
+  text.type = 'text';
+  text.addEventListener('change', () => set({ text: text.value }, 'Change footer text'));
+  field('Text', text);
+
+  const currentDate = (): FooterDate | null => store.get().deck.footer?.date ?? null;
+  const setDate = (date: FooterDate | null): void => set({ date }, 'Change footer date');
+
+  const mode = select([['none', 'None'], ['today', 'Today (updates)'], ['fixed', 'Fixed date']]);
+  mode.addEventListener('change', () => {
+    const format = currentDate()?.format ?? 'long';
+    if (mode.value === 'none') setDate(null);
+    // A fixed date starts on today, so the footer shows something at once.
+    else if (mode.value === 'fixed') setDate({ mode: 'fixed', value: currentDate()?.value || localDay(new Date()), format });
+    else setDate({ mode: 'today', value: currentDate()?.value ?? '', format });
   });
+  field('Date', mode);
+
+  // Chromium's own date field: typed or picked from its calendar.
+  const day = document.createElement('input');
+  day.type = 'date';
+  day.addEventListener('change', () => {
+    const date = currentDate();
+    if (date && day.value) setDate({ ...date, value: day.value });
+  });
+  const dayRow = field('Day', day);
+
+  const format = select(FOOTER_DATE_FORMATS.map((value) => [value, value]));
+  format.addEventListener('change', () => {
+    const date = currentDate();
+    if (date) setDate({ ...date, format: format.value as FooterDate['format'] });
+  });
+  const formatRow = field('Format', format);
 
   const checks = ([
     ['title', 'Deck title'],
@@ -56,9 +92,16 @@ export function footerControls(store: EditorStore): { element: HTMLElement; sync
   const sync = (): void => {
     const footer = store.get().deck.footer;
     const current = { ...NONE, ...footer };
-    for (const { key, input } of texts) {
-      if (document.activeElement !== input) input.value = current[key];
-    }
+    if (document.activeElement !== text) text.value = current.text;
+    const date = current.date;
+    mode.value = date?.mode ?? 'none';
+    dayRow.hidden = date?.mode !== 'fixed';
+    if (document.activeElement !== day) day.value = date?.value ?? '';
+    formatRow.hidden = !date;
+    // Each format is shown as the day it would print.
+    const sample = date?.mode === 'fixed' && date.value ? date.value : localDay(new Date());
+    for (const option of format.options) option.text = formatDay(sample, option.value as FooterDate['format']);
+    format.value = date?.format ?? 'long';
     for (const { key, input } of checks) {
       input.checked = current[key];
       // Nothing to hide on the first slide until the footer shows something.
