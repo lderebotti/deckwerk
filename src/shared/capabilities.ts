@@ -277,6 +277,7 @@ export function capabilities(): Capability[] {
         'An arrow’s `control` is an absolute canvas-space point making it a quadratic curve.',
         'shape: "path" carries real SVG path data, scaled from pathSize to the element box — this is how imported vector art keeps its geometry.',
         'arrowStart/arrowEnd put heads on a line or arrow at either end, or both.',
+        'ink: true marks a pen stroke kept from a presentation, which "Show saved ink" and exports can leave out. The editor sets it; leave it as you find it.',
       ],
       elements: [
         text('cap-shape-title', 'Shapes and connectors', TITLE, { class: ['role-title'] }),
