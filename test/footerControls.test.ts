@@ -60,12 +60,23 @@ describe('the footer date in Design', () => {
 
     mode.value = 'fixed';
     mode.dispatchEvent(new Event('change'));
-    const day = row(footer.element, 'Day').querySelector('input')!;
-    expect(day.type).toBe('date');
+    const day = row(footer.element, 'Day').querySelector<HTMLInputElement>('input[type="text"]')!;
+    expect(day.placeholder).toBe('dd/mm/yyyy');
     expect(row(footer.element, 'Day').hidden).toBe(false);
+    expect(row(footer.element, 'Day').querySelector('button[aria-label="Choose from calendar"]')).not.toBeNull();
     expect(store.get().deck.footer?.date?.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
-    change(day, '2026-10-03');
+    change(day, '3/10/2026');
+    expect(store.get().deck.footer?.date?.value).toBe('2026-10-03');
+    expect(day.value).toBe('03/10/2026');
+    // A day that does not exist is refused and the field shows the deck's again.
+    change(day, '31/02/2026');
+    expect(store.get().deck.footer?.date?.value).toBe('2026-10-03');
+    expect(day.value).toBe('03/10/2026');
+    // The calendar's own field speaks ISO.
+    change(row(footer.element, 'Day').querySelector<HTMLInputElement>('input[type="date"]')!, '2026-12-25');
+    expect(day.value).toBe('25/12/2026');
+    change(day, '03/10/2026');
     const format = row(footer.element, 'Format').querySelector('select')!;
     expect([...format.options].map((option) => option.text)).toEqual([
       '3 October 2026', 'October 3, 2026', '03/10/2026', '10/03/2026', '2026-10-03', 'October 2026',

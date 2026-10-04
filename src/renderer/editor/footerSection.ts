@@ -1,6 +1,10 @@
 import { FOOTER_DATE_FORMATS, type Footer, type FooterDate } from '@shared/deck.js';
-import { formatDay, localDay } from '@shared/footer.js';
+import { formatDay, localDay, parseDmy } from '@shared/footer.js';
 import type { EditorStore } from './store.js';
+
+const CALENDAR_ICON = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">'
+  + '<rect x="1.5" y="2.5" width="11" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/>'
+  + '<path d="M1.5 5.5h11M4.5 1v3M9.5 1v3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>';
 
 const NONE: Footer = { text: '', date: null, title: false, slideNumber: false, skipFirst: false };
 
@@ -53,14 +57,43 @@ export function footerControls(store: EditorStore): { element: HTMLElement; sync
   });
   field('Date', mode);
 
-  // Chromium's own date field: typed or picked from its calendar.
+  // Typed as dd/mm/yyyy. Chromium's own date field orders the day by the
+  // app's locale (en-US, so month first) and cannot be told otherwise, so it
+  // stays hidden and only lends its calendar to the button.
   const day = document.createElement('input');
-  day.type = 'date';
+  day.type = 'text';
+  day.placeholder = 'dd/mm/yyyy';
   day.addEventListener('change', () => {
     const date = currentDate();
-    if (date && day.value) setDate({ ...date, value: day.value });
+    const value = parseDmy(day.value);
+    if (date && value && value !== date.value) setDate({ ...date, value });
+    // Shown back as dd/mm/yyyy, or as the deck's day when the text is no day.
+    const shown = currentDate()?.value;
+    day.value = shown ? formatDay(shown, 'dmy') : '';
   });
-  const dayRow = field('Day', day);
+  const picker = document.createElement('input');
+  picker.type = 'date';
+  picker.className = 'field-date-picker';
+  picker.tabIndex = -1;
+  picker.setAttribute('aria-hidden', 'true');
+  picker.addEventListener('change', () => {
+    const date = currentDate();
+    if (date && picker.value) setDate({ ...date, value: picker.value });
+  });
+  const calendar = document.createElement('button');
+  calendar.type = 'button';
+  calendar.className = 'field-date-button';
+  calendar.title = 'Choose from calendar';
+  calendar.setAttribute('aria-label', 'Choose from calendar');
+  calendar.innerHTML = CALENDAR_ICON;
+  calendar.addEventListener('click', (event) => {
+    event.preventDefault();
+    picker.showPicker?.();
+  });
+  const dayWrap = document.createElement('span');
+  dayWrap.className = 'field-unit-wrap field-date';
+  dayWrap.append(day, picker, calendar);
+  const dayRow = field('Day', dayWrap);
 
   const format = select(FOOTER_DATE_FORMATS.map((value) => [value, value]));
   format.addEventListener('change', () => {
@@ -96,7 +129,8 @@ export function footerControls(store: EditorStore): { element: HTMLElement; sync
     const date = current.date;
     mode.value = date?.mode ?? 'none';
     dayRow.hidden = date?.mode !== 'fixed';
-    if (document.activeElement !== day) day.value = date?.value ?? '';
+    if (document.activeElement !== day) day.value = date?.value ? formatDay(date.value, 'dmy') : '';
+    picker.value = date?.value ?? '';
     formatRow.hidden = !date;
     // Each format is shown as the day it would print.
     const sample = date?.mode === 'fixed' && date.value ? date.value : localDay(new Date());

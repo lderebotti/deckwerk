@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DeckSchema } from '../src/shared/deck';
-import { footerFor, formatDay } from '../src/shared/footer';
+import { footerFor, formatDay, parseDmy } from '../src/shared/footer';
 
 describe('footerFor', () => {
   const deck = DeckSchema.parse({
@@ -28,6 +28,15 @@ describe('the footer date', () => {
     expect(['long', 'us', 'dmy', 'mdy', 'iso', 'month'].map((format) => formatDay('2026-10-03', format as never)))
       .toEqual(['3 October 2026', 'October 3, 2026', '03/10/2026', '10/03/2026', '2026-10-03', 'October 2026']);
     expect(formatDay('not a day', 'long')).toBe('');
+    expect(formatDay('2026-02-31', 'long')).toBe('');
+  });
+
+  it('reads a day typed day first', () => {
+    expect(parseDmy('3/10/2026')).toBe('2026-10-03');
+    expect(parseDmy(' 03.10.2026 ')).toBe('2026-10-03');
+    expect(parseDmy('29-02-2028')).toBe('2028-02-29');
+    expect(parseDmy('29/02/2026')).toBeNull();
+    expect(parseDmy('10/2026')).toBeNull();
   });
 
   it('follows the day the slide is drawn in Today mode', () => {

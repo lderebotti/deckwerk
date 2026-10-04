@@ -24,11 +24,21 @@ export function localDay(now: Date): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-/** `day` (`YYYY-MM-DD`) in `format`, or '' when it is not a valid day. */
+/** `day` (`YYYY-MM-DD`) in `format`, or '' when it is not a real day. */
 export function formatDay(day: string, format: DateFormat): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return '';
   const date = new Date(`${day}T00:00:00Z`);
-  return Number.isNaN(date.getTime()) ? '' : DATE_FORMATS[format](date);
+  // V8 rolls 31 February over into March rather than refusing it.
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== day) return '';
+  return DATE_FORMATS[format](date);
+}
+
+/** A day typed as d/m/yyyy (`/`, `.` or `-` between) as `YYYY-MM-DD`, or null when it is not a real day. */
+export function parseDmy(text: string): string | null {
+  const match = /^\s*(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})\s*$/.exec(text);
+  if (!match) return null;
+  const day = `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+  return formatDay(day, 'iso') ? day : null;
 }
 
 /** What the footer's date reads on `now`. */

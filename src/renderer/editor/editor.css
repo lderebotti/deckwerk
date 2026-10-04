@@ -3597,9 +3597,6 @@ select.panel-action-select {
   background-position: right 8px center;
 }
 .field select { border-radius: 6px; }
-/* The date field's calendar button, dimmed like the dropdown chevron. */
-.field input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
-.field input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .timeline-row select { padding-right: 20px; background-position: right 6px center; }
 
 /* --- shape insert menu (custom dropdown: options carry icons) --- */
@@ -4183,6 +4180,38 @@ select.panel-action-select {
 .field-unit-wrap > input { width: 100%; padding-right: 26px; }
 .field-unit-wrap > input::-webkit-inner-spin-button,
 .field-unit-wrap > input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+/* A dd/mm/yyyy field whose calendar button sits where a unit would. The
+   native date input only anchors Chromium's calendar under the field. */
+.field-unit-wrap > input.field-date-picker {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.field-date-button {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.field-date-button:hover { color: var(--text); background: var(--accent-soft); }
+.field-date-button:focus-visible { outline: none; color: var(--accent); }
+
 .field-unit {
   position: absolute;
   top: 50%;
