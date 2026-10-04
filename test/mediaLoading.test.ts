@@ -36,7 +36,7 @@ function videoDeck(overrides: Record<string, unknown> = {}): Deck {
 }
 
 function renderVideoEl(deck: Deck, mediaPreload?: 'auto' | 'metadata'): HTMLVideoElement {
-  const root = renderSlide(deck.slides[0], { resolveSrc: (s) => `/x/${s}`, mediaPreload });
+  const root = renderSlide(deck.slides[0], { footer: null, resolveSrc: (s) => `/x/${s}`, mediaPreload });
   const video = root.querySelector('video');
   expect(video).not.toBeNull();
   return video!;
@@ -52,6 +52,7 @@ describe('preview frames must be readable', () => {
   it('asks for CORS on cross-origin preview media, and not on same-origin', () => {
     const deck = videoDeck();
     const remote = renderSlide(deck.slides[0], {
+      footer: null,
       resolveSrc: (src) => `deck://asset/${src}`,
       mediaPreload: 'metadata',
     }).querySelector('video')!;

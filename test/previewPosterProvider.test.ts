@@ -39,7 +39,7 @@ afterEach(() => {
 describe('preview poster provider', () => {
   it('builds a deferred preview video with no source at all', () => {
     setPreviewPosterProvider(async () => null);
-    const root = renderSlide(video({ start: 2.5 }), { resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
+    const root = renderSlide(video({ start: 2.5 }), { footer: null, resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
     const el = root.querySelector('video')!;
     expect(el.getAttribute('src')).toBeNull();
     expect(el.dataset.gateAbortedSrc).toBe('deck://abc123/assets/clip.mov');
@@ -55,8 +55,8 @@ describe('preview poster provider', () => {
   it('swaps every element showing one frame for a still from a single provider call', async () => {
     const provider = vi.fn(async (src: string, time: number) => `deck://posters/${time}-${src.length}.jpg`);
     setPreviewPosterProvider(provider);
-    const a = renderSlide(video({ start: 1 }), { resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
-    const b = renderSlide(video({ start: 1 }), { resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
+    const a = renderSlide(video({ start: 1 }), { footer: null, resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
+    const b = renderSlide(video({ start: 1 }), { footer: null, resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
     document.body.append(a, b);
     freezePreviewVideos(a);
     freezePreviewVideos(b);
@@ -71,7 +71,7 @@ describe('preview poster provider', () => {
     expect(stills[0].dataset.previewSrc).toBe('deck://abc123/assets/clip.mov');
 
     // A third element for the same frame is served from the cache, synchronously.
-    const c = renderSlide(video({ start: 1 }), { resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
+    const c = renderSlide(video({ start: 1 }), { footer: null, resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
     document.body.append(c);
     freezePreviewVideos(c);
     expect(c.querySelector('video')).toBeNull();
@@ -79,7 +79,7 @@ describe('preview poster provider', () => {
   });
 
   it('ignores deferral when there is no provider, so the collab client behaves as before', () => {
-    const root = renderSlide(video(), { resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
+    const root = renderSlide(video(), { footer: null, resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
     const el = root.querySelector('video')!;
     // Source assigned at render, before the element ever enters the document.
     expect(el.getAttribute('src')).toBe('deck://abc123/assets/clip.mov');
@@ -93,7 +93,7 @@ describe('preview poster provider', () => {
 
   it('falls back to the in-page path when the provider cannot cut the frame', async () => {
     setPreviewPosterProvider(async () => null);
-    const root = renderSlide(video(), { resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
+    const root = renderSlide(video(), { footer: null, resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
     document.body.appendChild(root);
     freezePreviewVideos(root);
     const el = root.querySelector('video')!;
@@ -107,7 +107,7 @@ describe('preview poster provider', () => {
     const videoPoster = vi.fn(async () => ({ url: 'deck://posters/x.jpg' }));
     (window as unknown as { api: unknown }).api = { videoPoster };
     expect(installWindowApiPosterProvider()).toBe(true);
-    const root = renderSlide(video({ start: 3 }), { resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
+    const root = renderSlide(video({ start: 3 }), { footer: null, resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true });
     document.body.appendChild(root);
     freezePreviewVideos(root);
     await flush();

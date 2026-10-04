@@ -71,7 +71,7 @@ describe('role-based theme workflow', () => {
     const style = document.createElement('style');
     style.textContent = themeCss(theme);
     document.head.appendChild(style);
-    document.body.appendChild(renderSlide(store.slide!, { resolveSrc: (src) => src }));
+    document.body.appendChild(renderSlide(store.slide!, { footer: null, resolveSrc: (src) => src }));
     expect(getComputedStyle(document.querySelector<HTMLElement>('[data-element-id="title"]')!).fontSize)
       .toBe(`${theme.fonts.title.size}px`);
     expect(getComputedStyle(document.querySelector<HTMLElement>('[data-element-id="body"]')!).fontSize)

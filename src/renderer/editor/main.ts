@@ -31,6 +31,7 @@ import { createShapeInsertPicker, createTableInsertPicker, insertText } from './
 import { createToolbarPicker, createToolbarSplitButton } from './exportPicker.js';
 import { showPdfExportDialog } from './pdfExportDialog.js';
 import { showWebExportDialog } from './webExportDialog.js';
+import { showFooterDialog } from './footerDialog.js';
 import { makePanelResizable } from './panelResize.js';
 import { DelayedOperationProgress, type OperationHandle } from './operationProgress.js';
 import { DesignWorkspace } from './designWorkspace.js';
@@ -477,10 +478,12 @@ function buildToolbar(): void {
   const secondaryActions = document.createElement('span');
   secondaryActions.className = 'toolbar-expanded-secondary-actions';
   secondaryActions.append(
+    barButton('Footer…', () => showFooterDialog(store)),
     barButton('Agent…', () => void toggleAgentPanel()),
     collaborateButton,
   );
   const compactSecondary = createToolbarPicker('More', [
+    { label: 'Footer…', action: () => showFooterDialog(store) },
     { label: 'Agent…', action: () => void toggleAgentPanel() },
     { label: 'Collaboration…', action: () => void startSharing() },
   ]);

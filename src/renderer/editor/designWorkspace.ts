@@ -1,4 +1,5 @@
 import { emptyDeck, type Deck, type Slide, type SlideElement } from '@shared/deck.js';
+import { footerFor } from '@shared/footer.js';
 import { defaultLayoutMasters, syncDeckWithLayoutMasters, type FixedLayout } from '@shared/layoutMasters.js';
 import { ROLE_TYPE_SCALE_PROPERTIES, deckTheme, themeCss, type ThemePreset } from '@shared/themes.js';
 import { renderSlide } from '../player/render.js';
@@ -124,6 +125,7 @@ export class DesignWorkspace {
     frame.appendChild(renderSlide(slide, {
       resolveSrc: (src) => window.api.assetUrl(src),
       mediaPreload: 'metadata',
+      footer: null,
     }));
     const label = document.createElement('span');
     label.className = 'theme-layout-summary-label';
@@ -157,6 +159,7 @@ export class DesignWorkspace {
       frame.appendChild(renderSlide(slide, {
         resolveSrc: (src) => window.api.assetUrl(src),
         mediaPreload: 'metadata',
+        footer: null,
       }));
       const observer = new ResizeObserver(([entry]) => {
         frame.style.setProperty('--design-preview-scale', String(entry.contentRect.width / 1920));
@@ -199,6 +202,7 @@ export class DesignWorkspace {
     layer.appendChild(renderSlide(clone, {
       resolveSrc: (src) => window.api.assetUrl(src),
       mediaPreload: 'metadata',
+      footer: footerFor(this.deps.store.get().deck, this.deps.store.get().slideIndex),
     }));
     stage.appendChild(layer);
     const note = document.createElement('div');
@@ -289,6 +293,7 @@ export class DesignWorkspace {
         thumb.appendChild(renderSlide(railSlide, {
           resolveSrc: (src) => window.api.assetUrl(src),
           mediaPreload: 'metadata',
+          footer: null,
         }));
         const label = document.createElement('span');
         label.textContent = LABELS[layout];

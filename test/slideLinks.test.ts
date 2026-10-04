@@ -17,7 +17,7 @@ describe('slide links', () => {
       align: 'left', valign: 'top',
     });
 
-    const slide = renderSlide(deck.slides[0], { resolveSrc: (src) => src });
+    const slide = renderSlide(deck.slides[0], { footer: null, resolveSrc: (src) => src });
     const anchor = slide.querySelector<HTMLAnchorElement>('a')!;
     expect(anchor.target).toBe('_blank');
     expect(new Set(anchor.rel.split(/\s+/))).toEqual(new Set(['author', 'noopener']));
@@ -31,7 +31,7 @@ describe('slide links', () => {
       html: '<a href="https://example.com"><span>Example</span></a>', sandboxed: true,
     });
 
-    const slide = renderSlide(deck.slides[0], { resolveSrc: (src) => src });
+    const slide = renderSlide(deck.slides[0], { footer: null, resolveSrc: (src) => src });
     const anchor = slide.querySelector<HTMLElement>('[data-element-id="html-link"]')!
       .querySelector<HTMLElement>('div')!.shadowRoot!
       .querySelector<HTMLAnchorElement>('a')!;

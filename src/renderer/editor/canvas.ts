@@ -84,6 +84,7 @@ import {
   snapResize,
   spacingGuides,
 } from './snapping.js';
+import { footerFor } from '@shared/footer.js';
 import { sameSlideIgnoringNotes, type EditorStore } from './store.js';
 
 export type TableSelection = {
@@ -635,6 +636,7 @@ export class EditorCanvas {
   private videoPool = new DecodedVideoPool(16);
   /** The slide object currently drawn, used to skip needless rebuilds. */
   private renderedSlide: Slide | null = null;
+  private renderedFooterKey = 'null';
   /** Position of `renderedSlide`, so lookahead images are adopted only on navigation. */
   private renderedSlideIndex: number | null = null;
   /** Decoded images for the next visible slide, bounded to that one slide. */
@@ -861,9 +863,12 @@ export class EditorCanvas {
     // repainting the slide layer for each keystroke in the notes drawer made
     // the heavy images on screen re-decode, and the sidebar thumbnails with
     // them.
+    const footer = footerFor(deck, slideIndex);
+    const footerKey = JSON.stringify(footer);
     if (
-      slide === this.renderedSlide
-      || (this.renderedSlide !== null && sameSlideIgnoringNotes(this.renderedSlide, slide))
+      footerKey === this.renderedFooterKey
+      && (slide === this.renderedSlide
+        || (this.renderedSlide !== null && sameSlideIgnoringNotes(this.renderedSlide, slide)))
     ) {
       this.renderedSlide = slide;
       this.rescale();
@@ -882,7 +887,7 @@ export class EditorCanvas {
     // individually. That is what lets a collaborator's typing stream in
     // without destroying the contenteditable node (and caret) of a text box
     // being edited on this machine.
-    if (this.renderedSlide && sameStructure(this.renderedSlide, slide, true)) {
+    if (footerKey === this.renderedFooterKey && this.renderedSlide && sameStructure(this.renderedSlide, slide, true)) {
       const previous = this.renderedSlide;
       this.renderedSlide = slide;
       this.patchChangedHtml(slide, previous);
@@ -917,6 +922,7 @@ export class EditorCanvas {
     const slideChanged = this.renderedSlideIndex !== slideIndex;
     this.renderedSlide = slide;
     this.renderedSlideIndex = slideIndex;
+    this.renderedFooterKey = footerKey;
 
     // Re-rendering under an active text edit would destroy the node the caret
     // lives in, so the edit is ended first — through the session's own finish
@@ -956,7 +962,11 @@ export class EditorCanvas {
     this.harvestVideos();
     const rendered = renderSlide(
       slide,
-      { resolveSrc: (src) => window.api.assetUrl(src), mediaPreload: 'metadata' },
+      {
+        resolveSrc: (src) => window.api.assetUrl(src),
+        mediaPreload: 'metadata',
+        footer,
+      },
     );
     if (slideChanged) this.adoptWarmedImages(rendered);
     this.slideLayer.replaceChildren(rendered);

@@ -32,6 +32,24 @@
   display: none;
 }
 
+.slide-footer {
+  position: absolute;
+  left: 80px;
+  right: 80px;
+  bottom: 32px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 24px;
+  font-size: 24px;
+  opacity: 0.6;
+  pointer-events: none;
+  user-select: none;
+}
+
+.slide-footer > :last-child {
+  text-align: right;
+}
+
 .element {
   position: absolute;
   box-sizing: border-box;

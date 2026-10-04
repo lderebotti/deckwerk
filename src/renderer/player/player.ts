@@ -29,6 +29,7 @@ import {
   type MorphPair,
 } from '@shared/morph.js';
 import { morphTransforms, type Rect, type TextLayout } from './morphTransform.js';
+import { footerFor } from '@shared/footer.js';
 import { isPendingSrc } from '@shared/media.js';
 import { WEB_BRIDGE_SOURCE, isWebBridgeAction, type WebBridgeEvent } from '@shared/webBridge.js';
 
@@ -360,7 +361,7 @@ export class Player {
       }
     }
 
-    const rendered = renderSlide(slide, { resolveSrc: this.resolveSrc });
+    const rendered = renderSlide(slide, { resolveSrc: this.resolveSrc, footer: footerFor(this.deck, this.cursor.slide) });
     this.adoptWarmedImages(rendered);
     revealImagesWhenDecoded(rendered);
     this.stage.replaceChildren(rendered);

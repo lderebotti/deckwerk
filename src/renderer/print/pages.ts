@@ -2,6 +2,7 @@ import type { Deck, Slide } from '@shared/deck.js';
 import type { PdfBuildMode } from '@shared/ipc.js';
 import { resolveState, type SlideState } from '@shared/timeline.js';
 import { pdfSteps } from '@shared/pdfExport.js';
+import { footerFor } from '@shared/footer.js';
 import { renderSlide } from '../player/render.js';
 import { applyStaticSlideState } from '../player/staticState.js';
 
@@ -63,7 +64,7 @@ export function buildPrintPages(
       // pins every video to an exact frame under a timeout. 'metadata' would
       // leave the pinned seek racing the network inside that timeout, which
       // showed up as nondeterministic frames in the PDF-vs-player pixel test.
-      stage.appendChild(renderSlide(slide, { resolveSrc }));
+      stage.appendChild(renderSlide(slide, { resolveSrc, footer: footerFor(deck, deck.slides.indexOf(slide)) }));
       const state = resolveState(slide, step);
       applyStaticSlideState(stage, slide, state);
       page.appendChild(stage);

@@ -411,6 +411,16 @@ export const CustomThemeSchema = z.object({
   colors: ThemeStyleSchema.shape.colors,
 });
 
+/** Text repeated along the bottom of every slide: custom text and date left, title centre, number right. */
+export const FooterSchema = z.object({
+  text: z.string().default(''),
+  date: z.string().default(''),
+  title: z.boolean().default(false),
+  slideNumber: z.boolean().default(false),
+  /** Leave the first slide bare, as a title slide usually wants. */
+  skipFirst: z.boolean().default(false),
+});
+
 export const DeckSchema = z.object({
   version: z.literal(1),
   title: z.string().default('Untitled'),
@@ -444,6 +454,8 @@ export const DeckSchema = z.object({
   }).nullable().default(null),
   /** Deck-wide motion curve for Morph transitions. */
   morphEasing: z.enum(['ease-in-out', 'ease-out', 'linear']).default('ease-in-out'),
+  /** Deck-wide footer; null shows none. */
+  footer: FooterSchema.nullable().default(null),
   slides: z.array(SlideSchema).default([]),
 });
 
@@ -461,6 +473,7 @@ export type HtmlEl = z.infer<typeof HtmlElement>;
 export type UnsupportedEl = z.infer<typeof UnsupportedElement>;
 export type Slide = z.infer<typeof SlideSchema>;
 export type Comment = z.infer<typeof CommentSchema>;
+export type Footer = z.infer<typeof FooterSchema>;
 export type Deck = z.infer<typeof DeckSchema>;
 export type ThemeStyle = z.infer<typeof ThemeStyleSchema>;
 export type ThemeSelection = z.infer<typeof ThemeSelectionSchema>;

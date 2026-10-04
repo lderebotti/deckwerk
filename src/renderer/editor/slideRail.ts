@@ -2,7 +2,8 @@ import { openContextMenu } from './contextMenuPlacement.js';
 import { makeId } from '@shared/geometry.js';
 import { recoverPreviewFrames } from '../player/previewFrameRecovery.js';
 import { freezePreviewVideos, releasePreviewVideos } from '../player/previewPoster.js';
-import { renderSlide } from '../player/render.js';
+import { renderSlide, syncFooter } from '../player/render.js';
+import { footerFor } from '@shared/footer.js';
 import { applyDeckThemeToNewSlide } from '@shared/themes.js';
 import { LAYOUT_LABELS_BY_ID } from './layoutPreview.js';
 import { applySlideLayout } from './slideLayouts.js';
@@ -472,7 +473,7 @@ export class SlideRail {
       inner.style.height = `${deck.canvas.h}px`;
       if (slide.background.color) inner.style.background = slide.background.color;
       inner.appendChild(
-        renderSlide(slide, { resolveSrc: (src) => window.api.assetUrl(src), mediaPreload: 'metadata', deferVideoSrc: true }),
+        renderSlide(slide, { resolveSrc: (src) => window.api.assetUrl(src), mediaPreload: 'metadata', deferVideoSrc: true, footer: null }),
       );
       for (const video of inner.querySelectorAll('video')) {
         video.removeAttribute('autoplay');
@@ -490,7 +491,17 @@ export class SlideRail {
       this.thumbCache.set(slide, thumb);
       if (this.thumbVisibilityObserver) this.trimThumbCache();
     }
+    this.syncThumbFooter(thumb, deck, deck.slides.indexOf(slide));
     return thumb;
+  }
+
+  /**
+   * The cache is keyed by slide object, which outlives a footer edit or a
+   * reorder that renumbers the slide, so the footer is re-applied on every use.
+   */
+  private syncThumbFooter(thumb: HTMLElement, deck: Deck, index: number): void {
+    const root = thumb.querySelector<HTMLElement>('.rail-thumb-inner > .slide');
+    if (root) syncFooter(root, footerFor(deck, index));
   }
 
   /** A geometry-only shell upgraded to a real slide when it nears the viewport. */
@@ -632,6 +643,7 @@ export class SlideRail {
       this.syncRowState(item, i === slideIndex, slideSelection.has(slide.id));
       const thumb = item.querySelector<HTMLElement>(':scope > .rail-thumb');
       if (thumb) {
+        this.syncThumbFooter(thumb, deck, i);
         this.pendingThumbs.set(thumb, { deck, slide });
         this.thumbVisibilityObserver?.observe(thumb);
       }

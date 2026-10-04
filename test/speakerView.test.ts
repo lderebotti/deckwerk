@@ -66,6 +66,18 @@ describe('speaker view', () => {
     view.destroy();
   });
 
+  it('shows the deck footer on both previews, numbered by deck position', () => {
+    const view = open();
+    const deck = deckOf(['Intro', 'Backup', 'Results'], [1]);
+    deck.footer = { text: '', date: '', title: false, slideNumber: true, skipFirst: false };
+    view.setDeck(deck);
+    view.setState(state({ cursor: { slide: 0, step: 0 } }));
+
+    expect(host.querySelector('.speaker-current .slide-footer')!.textContent).toBe('1');
+    expect(host.querySelector('.speaker-next .slide-footer')!.textContent).toBe('3');
+    view.destroy();
+  });
+
   it('skips hidden slides when choosing the next preview', () => {
     const view = open();
     view.setDeck(deckOf(['Intro', 'Backup', 'Backup 2', 'Results'], [1, 2]));

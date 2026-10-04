@@ -1,5 +1,6 @@
 import { MIRRORED_TEXT_STYLE_PROPERTIES } from '@shared/deck.js';
 import type { Deck, MediaEffect, Slide, SlideElement } from '@shared/deck.js';
+import type { FooterText } from '@shared/footer.js';
 import { fitScale } from '@shared/geometry.js';
 import { fitAutoTextElement } from '@shared/autoFit.js';
 import { isPendingSrc, pendingName, pendingToken } from '@shared/media.js';
@@ -55,8 +56,17 @@ export interface RenderOptions {
 export { quadraticPath };
 export { fitAutoTextElement };
 
-/** Build the `<div class="slide">` for a slide, with elements absolutely placed. */
-export function renderSlide(slide: Slide, opts: RenderOptions): HTMLElement {
+/**
+ * Build the `<div class="slide">` for a slide, with elements absolutely placed.
+ *
+ * `footer` is the deck footer for this slide (`footerFor`). It is required so
+ * every surface decides: a picture of a real slide shows it, a tool view
+ * passes null.
+ */
+export function renderSlide(
+  slide: Slide,
+  opts: RenderOptions & { footer: FooterText | null },
+): HTMLElement {
   const root = document.createElement('div');
   root.dataset.slideId = slide.id;
   applySlideRootStyles(root, slide, opts);
@@ -66,7 +76,22 @@ export function renderSlide(slide: Slide, opts: RenderOptions): HTMLElement {
   for (const el of [...slide.elements].sort((a, b) => a.z - b.z)) {
     root.appendChild(renderElement(el, opts));
   }
+  syncFooter(root, opts.footer);
   return root;
+}
+
+/** Replace the footer bar on a rendered `.slide`, for surfaces that cache slide DOM. */
+export function syncFooter(root: HTMLElement, footer: FooterText | null): void {
+  root.querySelector(':scope > .slide-footer')?.remove();
+  if (!footer) return;
+  const bar = document.createElement('div');
+  bar.className = 'slide-footer';
+  for (const text of [footer.left, footer.center, footer.right]) {
+    const cell = document.createElement('span');
+    cell.textContent = text;
+    bar.appendChild(cell);
+  }
+  root.appendChild(bar);
 }
 
 /**

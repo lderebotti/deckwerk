@@ -11,7 +11,7 @@ describe('LaTeX text rendering', () => {
       opacity: 1, class: [], style: {}, align: 'left', valign: 'middle',
       html: 'Die Mitternachtsformel lautet $(a+b)^2 = (a^2 + 2ab + b^2)$',
     });
-    const rendered = renderSlide(slide, { resolveSrc: (src) => src });
+    const rendered = renderSlide(slide, { footer: null, resolveSrc: (src) => src });
     const body = rendered.querySelector<HTMLElement>('.text-body')!;
     const content = body.querySelector<HTMLElement>(':scope > .text-content')!;
 
@@ -28,7 +28,7 @@ describe('LaTeX text rendering', () => {
       opacity: 1, class: [], style: {}, align: 'left', valign: 'top',
       html: String.raw`Price: \$5. Inline $E=mc^2$. Display $$\int_0^1 x^2\,dx$$`,
     });
-    const rendered = renderSlide(slide, { resolveSrc: (src) => src });
+    const rendered = renderSlide(slide, { footer: null, resolveSrc: (src) => src });
     expect(rendered.querySelectorAll('.katex')).toHaveLength(2);
     expect(rendered.querySelector('.katex-display')).not.toBeNull();
     expect(rendered.textContent).toContain('Price: $5');
@@ -41,6 +41,6 @@ describe('LaTeX text rendering', () => {
       opacity: 1, class: [], style: {}, align: 'left', valign: 'top',
       html: String.raw`$$\notacommand{oops}$$`,
     });
-    expect(() => renderSlide(slide, { resolveSrc: (src) => src })).not.toThrow();
+    expect(() => renderSlide(slide, { footer: null, resolveSrc: (src) => src })).not.toThrow();
   });
 });

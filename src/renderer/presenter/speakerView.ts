@@ -1,4 +1,5 @@
 import type { Deck } from '@shared/deck.js';
+import { footerFor } from '@shared/footer.js';
 import type { PresentationCommand, PresentationState } from '@shared/ipc.js';
 import { resolveState } from '@shared/timeline.js';
 import { revealImagesWhenDecoded } from '../player/imageDecode.js';
@@ -122,7 +123,7 @@ export function createSpeakerView(options: SpeakerViewOptions): SpeakerView {
     if (!slide) return;
     const stage = document.createElement('div');
     stage.className = 'stage';
-    stage.appendChild(renderSlide(slide, { resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true }));
+    stage.appendChild(renderSlide(slide, { resolveSrc, mediaPreload: 'metadata', deferVideoSrc: true, footer: footerFor(deck!, slideIndex) }));
     target.appendChild(stage);
     applyStaticSlideState(stage, slide, resolveState(slide, step));
     const bounds = target.getBoundingClientRect();

@@ -929,3 +929,28 @@ describe('a drag that reorders nothing', () => {
     expect(host.querySelectorAll('.drop-before, .drop-after')).toHaveLength(0);
   });
 });
+
+describe('footer in the slide rail', () => {
+  beforeEach(() => document.body.replaceChildren());
+
+  const footers = (host: HTMLElement) => [...host.querySelectorAll('.rail-thumb')]
+    .map((thumb) => thumb.querySelector('.slide-footer')?.textContent ?? null);
+
+  it('follows footer edits and reorders on cached thumbnails', () => {
+    const { store, host } = setup();
+    expect(footers(host)).toEqual([null, null]);
+
+    store.commit((deck) => {
+      deck.footer = { text: 'ACME', date: '', title: false, slideNumber: true, skipFirst: false };
+    });
+    expect(footers(host)).toEqual(['ACME1', 'ACME2']);
+
+    store.commit((deck) => { deck.slides.reverse(); });
+    expect([...host.querySelectorAll<HTMLElement>('.rail-item')].map((row) => row.dataset.slideId))
+      .toEqual(['slide-2', expect.any(String)]);
+    expect(footers(host)).toEqual(['ACME1', 'ACME2']);
+
+    store.commit((deck) => { deck.footer = null; });
+    expect(footers(host)).toEqual([null, null]);
+  });
+});

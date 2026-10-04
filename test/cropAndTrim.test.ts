@@ -18,7 +18,7 @@ function deckWith(element: Record<string, unknown>): Deck {
 }
 
 const render = (deck: Deck) =>
-  renderSlide(deck.slides[0], { resolveSrc: (src) => src });
+  renderSlide(deck.slides[0], { footer: null, resolveSrc: (src) => src });
 
 const VIDEO = {
   id: 'v1',

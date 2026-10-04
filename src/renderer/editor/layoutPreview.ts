@@ -122,6 +122,7 @@ export function masterTile(
   frame.appendChild(renderSlide(slide, {
     resolveSrc: (src) => window.api?.assetUrl?.(src) ?? src,
     mediaPreload: 'metadata',
+    footer: null,
   }));
   let observer: ResizeObserver | null = null;
   if (typeof ResizeObserver !== 'undefined') {

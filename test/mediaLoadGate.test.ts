@@ -57,6 +57,7 @@ beforeEach(() => {
 describe('preview video load gate', () => {
   it('lets only a few preview videos fetch at once', () => {
     const root = renderSlide(slideWithVideos(6), {
+      footer: null,
       resolveSrc: (s) => `/x/${s}`,
       mediaPreload: 'metadata',
     });
@@ -73,6 +74,7 @@ describe('preview video load gate', () => {
 
   it('promotes the next waiter when a loading video decodes its frame', () => {
     const root = renderSlide(slideWithVideos(5), {
+      footer: null,
       resolveSrc: (s) => `/x/${s}`,
       mediaPreload: 'metadata',
     });
@@ -84,6 +86,7 @@ describe('preview video load gate', () => {
 
   it('promotes the next waiter when a loading video fails', () => {
     const root = renderSlide(slideWithVideos(5), {
+      footer: null,
       resolveSrc: (s) => `/x/${s}`,
       mediaPreload: 'metadata',
     });
@@ -94,6 +97,7 @@ describe('preview video load gate', () => {
 
   it('never gates the live player, where playback is imminent', () => {
     const root = renderSlide(slideWithVideos(6), {
+      footer: null,
       resolveSrc: (s) => `/x/${s}`,
       mediaPreload: 'auto',
     });
@@ -116,6 +120,7 @@ describe('preview frame recovery', () => {
   function mount(count: number): HTMLElement {
     const host = document.createElement('div');
     host.appendChild(renderSlide(slideWithVideos(count), {
+      footer: null,
       resolveSrc: (s) => `/x/${s}`,
       mediaPreload: 'metadata',
     }));
@@ -210,6 +215,7 @@ describe('aborted preview loads come back', () => {
   it('restores the source of an element the gate abandoned while detached', () => {
     const host = document.createElement('div');
     host.appendChild(renderSlide(slideWithVideos(1), {
+      footer: null,
       resolveSrc: (s) => `/x/${s}`,
       mediaPreload: 'metadata',
     }));
@@ -251,6 +257,7 @@ describe('aborted preview loads come back', () => {
 describe('preview stills', () => {
   it('lets one element per frame fetch, and releases the others', () => {
     const root = renderSlide(slideWithVideos(1), {
+      footer: null,
       resolveSrc: () => '/x/one-clip.05a38d7a.mp4',
       mediaPreload: 'metadata',
     });
@@ -276,6 +283,7 @@ describe('preview stills', () => {
 
   it('forgets and tears down an evicted surface waiting for a distinct frame', () => {
     const root = renderSlide(slideWithVideos(1), {
+      footer: null,
       resolveSrc: () => '/x/unique-frame.05a38d7a.mp4',
       mediaPreload: 'metadata',
     });
@@ -290,6 +298,7 @@ describe('preview stills', () => {
     expect(video.getAttribute('src')).toBeNull();
 
     const retry = renderSlide(slideWithVideos(1), {
+      footer: null,
       resolveSrc: () => '/x/unique-frame.05a38d7a.mp4',
       mediaPreload: 'metadata',
     });

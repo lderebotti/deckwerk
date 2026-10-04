@@ -91,7 +91,7 @@ export function findRenderDivergences(
 ): RenderDivergence[] {
   const live = slideLayer.querySelector<HTMLElement>(':scope > .slide');
   if (!live) return [];
-  const fresh = renderSlide(slide, { resolveSrc, mediaPreload: 'metadata' });
+  const fresh = renderSlide(slide, { resolveSrc, mediaPreload: 'metadata', footer: null });
   const skip = new Set(options.skipElementIds ?? []);
   const divergences: RenderDivergence[] = [];
 

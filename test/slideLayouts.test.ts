@@ -43,7 +43,7 @@ describe('slide layouts', () => {
     expect(slide.elements.some((el) => el.class.includes('role-body'))).toBe(true);
     applySlideLayout(slide, 'title');
     expect(slide.elements.some((el) => el.class.includes('role-body'))).toBe(false);
-    const rendered = renderSlide(slide, { resolveSrc: (src) => src });
+    const rendered = renderSlide(slide, { footer: null, resolveSrc: (src) => src });
     expect(rendered.classList).toContain('layout-title');
   });
 
@@ -150,7 +150,7 @@ describe('slide layouts', () => {
     document.head.appendChild(styles);
     const slide = emptyDeck().slides[0];
     applySlideLayout(slide, 'standard');
-    const rendered = renderSlide(slide, { resolveSrc: (src) => src });
+    const rendered = renderSlide(slide, { footer: null, resolveSrc: (src) => src });
     document.body.appendChild(rendered);
 
     expect(getComputedStyle(rendered.querySelector('.role-title')!).fontSize).toBe('92px');
