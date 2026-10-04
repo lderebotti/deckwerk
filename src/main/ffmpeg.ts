@@ -186,9 +186,11 @@ export async function probeMedia(absolutePath: string): Promise<MediaInfo> {
     };
     const stream = parsed.streams?.[0];
     const duration = Number(parsed.format?.duration);
+    // `||`, not `??`: ffprobe answers 0×0 for a format it has no decoder for
+    // (an SVG without librsvg), and 0 means unknown just as absent does.
     return {
-      width: stream?.width ?? null,
-      height: stream?.height ?? null,
+      width: stream?.width || null,
+      height: stream?.height || null,
       duration: Number.isFinite(duration) ? duration : null,
     };
   } catch {

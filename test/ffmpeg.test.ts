@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -106,6 +106,23 @@ describe('runTrim against real ffmpeg', () => {
       await expect(
         runTrim(request(), join(dir, 'nope.mp4'), join(dir, 'out.mp4'), () => {}),
       ).rejects.toThrow(/ffmpeg exited/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }, 30_000);
+});
+
+describe('probeMedia', () => {
+  it('reports an SVG it cannot size as unknown, not 0×0', async () => {
+    // ffprobe without librsvg answers width/height 0 for an SVG (an Inkscape
+    // page sized in mm, here); callers fall back on null but not on 0.
+    const dir = await mkdtemp(join(tmpdir(), 'probe-test-'));
+    try {
+      const svg = join(dir, 'page.svg');
+      await writeFile(svg, '<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 210 297"><rect width="100" height="50"/></svg>');
+      const info = await probeMedia(svg);
+      expect(info.width).toBeNull();
+      expect(info.height).toBeNull();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
