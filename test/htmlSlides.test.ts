@@ -6,6 +6,7 @@ import {
   htmlChangeLabel,
   htmlSlideScope,
   slideFromMeasured,
+  slidesFromMeasured,
   slideToHtml,
   slidesToHtml,
   type MeasuredNode,
@@ -411,6 +412,49 @@ describe('measured nodes become deck objects', () => {
     expect(ids).not.toContain('results-h1-2');
     // Paint order follows document order.
     expect(slide.elements.map((element) => element.z)).toEqual([1, 2, 3]);
+  });
+});
+
+describe('replacing a slide from authored HTML', () => {
+  // An exported section carries the slide's id, name, layout, Morph and
+  // background, not its notes, comments or hidden state. Re-applying an
+  // untouched export used to wipe all three, because the replacement was
+  // built from the page alone.
+  const deck = () => parseDeck({
+    version: 1,
+    slides: [{
+      id: 's1',
+      notes: 'Say hello',
+      skipped: true,
+      comments: [{ id: 'c1', text: 'Fix the chart', ts: '2026-10-03T00:00:00Z' }],
+    }],
+  });
+  const measured = (over: Partial<Parameters<typeof slideFromMeasured>[0]> = {}) => ({
+    id: 's1',
+    name: '',
+    background: { color: null, image: null },
+    morphFromPrevious: false,
+    nodes: [node()],
+    ...over,
+  });
+
+  it('keeps the notes, comments and hidden state the page does not express', () => {
+    const [slide] = slidesFromMeasured(deck(), [measured()]);
+    expect(slide.notes).toBe('Say hello');
+    expect(slide.skipped).toBe(true);
+    expect(slide.comments?.map((comment) => comment.text)).toEqual(['Fix the chart']);
+  });
+
+  it('lets data-notes replace the notes, an empty one included', () => {
+    expect(slidesFromMeasured(deck(), [measured({ notes: 'New note' })])[0].notes).toBe('New note');
+    expect(slidesFromMeasured(deck(), [measured({ notes: '' })])[0].notes).toBe('');
+  });
+
+  it('gives a new slide nothing from the deck', () => {
+    const [slide] = slidesFromMeasured(deck(), [measured({ id: null })]);
+    expect(slide.notes).toBe('');
+    expect(slide.skipped).toBeUndefined();
+    expect(slide.comments).toBeUndefined();
   });
 });
 
