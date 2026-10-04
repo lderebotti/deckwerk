@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { emptyDeck } from '../src/shared/deck.js';
 import type { PresentationCommand } from '../src/shared/ipc.js';
-import { bindPresentKeys, pointLaserAt } from '../src/renderer/player/keys.js';
+import { bindPresentKeys, LASER_TRAIL_KEY, pointLaserAt } from '../src/renderer/player/keys.js';
 import type { Player } from '../src/renderer/player/player.js';
 import { createSpeakerView } from '../src/renderer/presenter/speakerView.js';
 
@@ -68,7 +68,13 @@ describe('laser pointer', () => {
     unbind();
   });
 
-  it('smears behind the moving dot, fades out once the mouse rests, and stops animating', () => {
+  it('smears behind the moving dot only when opted in, fading out once the mouse rests', () => {
+    // Off by default: no trail at all.
+    const unbound = bindPresentKeys(window, {} as Player);
+    expect(document.querySelector('.laser-trail')).toBeNull();
+    unbound();
+    localStorage.setItem(LASER_TRAIL_KEY, 'true');
+
     vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
     const strokes: number[] = [];
     const ctx = {
@@ -107,5 +113,6 @@ describe('laser pointer', () => {
     unbind();
     expect(document.querySelector('.laser-trail')).toBeNull();
     vi.useRealTimers();
+    localStorage.removeItem(LASER_TRAIL_KEY);
   });
 });
