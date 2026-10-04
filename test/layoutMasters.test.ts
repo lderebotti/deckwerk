@@ -239,6 +239,26 @@ describe('authored placeholder content and layout changes', () => {
   });
 });
 
+describe('a layout switch that drops an unwritten prompt', () => {
+  it('drops the build steps aimed at it too', () => {
+    const deck = emptyDeck('Builds');
+    deck.layoutMasters = defaultLayoutMasters();
+    const slide = deck.slides[0];
+    applySlideLayout(slide, 'standard', deck.layoutMasters);
+    const title = slide.elements.find((element) => element.id.endsWith('-title'))!;
+    slide.timeline.push({
+      id: 't1', trigger: { on: 'click', ref: null, delay: 0 }, action: { type: 'appear', target: title.id, value: null },
+    });
+
+    // Freeform has no title slot, so the untouched title prompt goes.
+    applySlideLayout(slide, 'freeform', deck.layoutMasters);
+
+    const ids = new Set(slide.elements.map((element) => element.id));
+    expect(ids.has(title.id)).toBe(false);
+    expect(slide.timeline.filter((entry) => !ids.has(entry.action.target))).toEqual([]);
+  });
+});
+
 describe('re-synchronizing a deck with its masters', () => {
   it('changes nothing the second time, so unedited slides keep their identity', () => {
     const deck = authoredDeck();

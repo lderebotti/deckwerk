@@ -171,9 +171,7 @@ export function syncSlideWithLayoutMaster(
   options: { forceBackground?: boolean; replaceStyle?: boolean } = {},
 ): void {
   slide.layout = layout;
-  const retiredCopies = new Set(slide.elements
-    .filter((element) => element.layoutMasterId)
-    .map((element) => element.id));
+  const before = new Set(slide.elements.map((element) => element.id));
   slide.elements = slide.elements.filter((element) => !element.layoutMasterId);
 
   for (const source of master.elements) {
@@ -210,15 +208,15 @@ export function syncSlideWithLayoutMaster(
   ));
   slide.elements.unshift(...decorations.map((element, index) => decorationCopy(slide.id, element, index)));
 
-  // A decoration the author removed from the master takes its per-slide copies
-  // with it, so any build step aimed at one of them must go the same way --
-  // every other deletion path prunes the timeline, and a step whose target no
-  // longer exists is a click that does nothing during the talk.
-  for (const element of slide.elements) retiredCopies.delete(element.id);
-  if (retiredCopies.size > 0) {
+  // Whatever the sync removed -- a decoration the author took off the master,
+  // an unwritten prompt the new layout has no slot for -- takes its build
+  // steps with it. Every other deletion path prunes the timeline, and a step
+  // whose target no longer exists is a click that does nothing in the talk.
+  for (const element of slide.elements) before.delete(element.id);
+  if (before.size > 0) {
     slide.timeline = slide.timeline.filter((entry) => (
-      !retiredCopies.has(entry.action.target)
-      && !(entry.trigger.ref && retiredCopies.has(entry.trigger.ref))
+      !before.has(entry.action.target)
+      && !(entry.trigger.ref && before.has(entry.trigger.ref))
     ));
   }
 
