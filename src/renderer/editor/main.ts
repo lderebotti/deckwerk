@@ -32,6 +32,7 @@ import { createToolbarPicker, createToolbarSplitButton } from './exportPicker.js
 import { showPdfExportDialog } from './pdfExportDialog.js';
 import { showWebExportDialog } from './webExportDialog.js';
 import { showKeepInkDialog } from './inkDialog.js';
+import { LASER_TRAIL_KEY } from '../player/keys.js';
 import { addInk, hasInk } from '@shared/ink.js';
 import { makePanelResizable } from './panelResize.js';
 import { DelayedOperationProgress, type OperationHandle } from './operationProgress.js';
@@ -504,6 +505,15 @@ function buildToolbar(): void {
             applyInkVisibility();
           },
         },
+        {
+          // Opt-in: the laser smears behind the dot only when this is checked.
+          label: 'Laser trail',
+          checked: () => readPreference(LASER_TRAIL_KEY) === 'true',
+          action: () => {
+            const on = readPreference(LASER_TRAIL_KEY) !== 'true';
+            try { localStorage.setItem(LASER_TRAIL_KEY, String(on)); } catch { /* not remembered */ }
+          },
+        },
       ],
       { variant: 'primary', menuLabel: 'Presentation options' },
     ),
@@ -513,6 +523,10 @@ function buildToolbar(): void {
   syncDeckNameLabel();
   installResponsiveToolbar(bar);
 }
+
+const readPreference = (key: string): string | null => {
+  try { return localStorage.getItem(key); } catch { return null; }
+};
 
 // Whether ink kept from earlier shows is shown, here and when presenting; a
 // per-author preference, so it lives in this window's storage, not the deck.

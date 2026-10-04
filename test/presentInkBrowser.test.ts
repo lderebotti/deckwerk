@@ -63,6 +63,9 @@ describe.skipIf(!electronBinary)('presentation ink', () => {
       'the audience window never settled on a slide',
     ))!;
 
+    // The laser's smear is opt-in: a first show has none.
+    expect(await audience.evaluate<boolean>(`Boolean(document.querySelector('.laser-trail'))`)).toBe(false);
+
     // P picks up the pen; a real drag draws one stroke across the slide.
     await audience.typeKeys('p');
     const at = (fx: number, fy: number) => [stage.x + fx * stage.w, stage.y + fy * stage.h] as const;
@@ -115,7 +118,11 @@ describe.skipIf(!electronBinary)('presentation ink', () => {
     await app.cdp.click('[aria-label="Presentation options"]');
     await app.cdp.clickByText('.shape-menu-item', 'Show saved ink');
     expect(await editorShows()).toEqual({ '#canvas': false, '#rail': false });
+    // Opting into the laser trail in the same menu reaches the next show.
+    await app.cdp.click('[aria-label="Presentation options"]');
+    await app.cdp.clickByText('.shape-menu-item', 'Laser trail');
     expect(await shows()).toBe(false);
+    expect(await audience!.evaluate<boolean>(`Boolean(document.querySelector('.laser-trail'))`)).toBe(true);
     await endShow();
     await app.cdp.click('[aria-label="Presentation options"]');
     expect(await app.cdp.evaluate<string | null>(`[...document.querySelectorAll('.shape-menu-item')]
