@@ -40,6 +40,7 @@ export function planHtmlReplacement(
     visual.comments = previous.comments;
     visual.notes = previous.notes;
     visual.skipped = previous.skipped;
+    visual.hideFooter = previous.hideFooter;
     operations.push({ op: 'replaceSlide', slideId: previous.id, slide: visual });
     appliedSlideIds.push(previous.id);
   }

@@ -15,7 +15,7 @@ describe('variable-length HTML replacement', () => {
       slides: [
         { id: 'before', name: 'Before' },
         { id: 'target-a', name: 'A', notes: 'keep A', comments: [{ id: 'c1', author: 'Human', text: 'review', ts: 'now', resolved: false }] },
-        { id: 'target-b', name: 'B', skipped: true },
+        { id: 'target-b', name: 'B', skipped: true, hideFooter: true },
         { id: 'after', name: 'After' },
       ],
     });
@@ -34,7 +34,7 @@ describe('variable-length HTML replacement', () => {
     expect(next.slides.map((candidate) => candidate.id))
       .toEqual(['before', 'target-a', 'target-b', 'draft-3', 'after']);
     expect(next.slides[1]).toMatchObject({ name: 'New 1', notes: 'keep A', comments: [expect.objectContaining({ id: 'c1' })] });
-    expect(next.slides[2]).toMatchObject({ name: 'New 2', skipped: true });
+    expect(next.slides[2]).toMatchObject({ name: 'New 2', skipped: true, hideFooter: true });
     expect(plan.appliedSlideIds).toEqual(['target-a', 'target-b', 'draft-3']);
   });
 

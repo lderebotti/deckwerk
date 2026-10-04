@@ -426,6 +426,7 @@ describe('replacing a slide from authored HTML', () => {
       id: 's1',
       notes: 'Say hello',
       skipped: true,
+      hideFooter: true,
       comments: [{ id: 'c1', text: 'Fix the chart', ts: '2026-10-03T00:00:00Z' }],
     }],
   });
@@ -442,6 +443,7 @@ describe('replacing a slide from authored HTML', () => {
     const [slide] = slidesFromMeasured(deck(), [measured()]);
     expect(slide.notes).toBe('Say hello');
     expect(slide.skipped).toBe(true);
+    expect(slide.hideFooter).toBe(true);
     expect(slide.comments?.map((comment) => comment.text)).toEqual(['Fix the chart']);
   });
 

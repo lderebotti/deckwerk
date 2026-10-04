@@ -683,6 +683,7 @@ export function slidesFromMeasured(deck: Deck, measured: MeasuredSlide[]): Slide
       if (slide.notes === undefined) built.notes = existing.notes;
       if (existing.comments) built.comments = structuredClone(existing.comments);
       if (existing.skipped) built.skipped = true;
+      if (existing.hideFooter) built.hideFooter = true;
     }
     const layout = slide.layout;
     if (layout === undefined) return built;
