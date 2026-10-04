@@ -25,6 +25,7 @@
  * session ends.
  */
 import type { Deck } from '../../shared/deck.js';
+import { groupViolations } from '../../shared/groups.js';
 import type { TableSelection } from './canvas.js';
 
 /** Everything the checker needs, read at one moment. */
@@ -55,6 +56,9 @@ export function findSelectionViolations(snap: SelectionSnapshot): string[] {
   for (const id of selection) {
     if (!ids.has(id)) problems.push(`selected ${id} is not on the current slide`);
   }
+
+  // --- groups nest ----------------------------------------------------------
+  problems.push(...groupViolations(elements));
 
   // --- modes are exclusive ---------------------------------------------------
   if (editingId !== null && maskingId !== null) {

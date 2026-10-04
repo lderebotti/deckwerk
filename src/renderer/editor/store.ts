@@ -13,6 +13,7 @@ import {
 } from '@shared/clipboard.js';
 import { effectiveThemeStyle } from '@shared/themes.js';
 import { makeId } from '@shared/geometry.js';
+import { groupElements, remintGroupIds, tidyGroups, ungroupElements } from '@shared/groups.js';
 import { pastedTableData } from '@shared/paragraphs.js';
 import { classifyMediaName } from '@shared/media.js';
 import type {
@@ -720,6 +721,8 @@ export class EditorStore {
         created.push(copy.id);
         slide.elements.push(copy);
       }
+      // The copies are a group of their own, not more members of the original.
+      remintGroupIds(slide.elements.filter((element) => created.includes(element.id)), () => makeId('group'));
     }, { label: ids.size === 1 ? 'Duplicate object' : 'Duplicate objects' });
     this.select(created);
     return created;
@@ -768,8 +771,36 @@ export class EditorStore {
       slide.timeline = slide.timeline.filter(
         (t) => !ids.has(t.action.target) && !(t.trigger.ref && ids.has(t.trigger.ref)),
       );
+      // A group whose other members went too is no group any more.
+      tidyGroups(slide.elements);
     }, { label: ids.size === 1 ? 'Delete object' : 'Delete objects' });
     this.clearSelection();
+  }
+
+  /** Group the selected objects (Cmd/Ctrl+G); false when there are not two to group. */
+  groupSelection(): boolean {
+    const ids = new Set(this.state.selection);
+    const slide = this.slide;
+    if (!slide || ids.size < 2) return false;
+    // Dry run on a copy: a refusal must not cost an undo step.
+    if (!groupElements(structuredClone(slide.elements), ids, 'probe')) return false;
+    const index = this.state.slideIndex;
+    this.commit((deck) => {
+      groupElements(deck.slides[index].elements, ids, makeId('group'));
+    }, { label: 'Group objects' });
+    return true;
+  }
+
+  /** Ungroup the groups the selection holds whole (Cmd/Ctrl+Shift+G); false when it holds none. */
+  ungroupSelection(): boolean {
+    const ids = new Set(this.state.selection);
+    const slide = this.slide;
+    if (!slide || !ungroupElements(structuredClone(slide.elements), ids)) return false;
+    const index = this.state.slideIndex;
+    this.commit((deck) => {
+      ungroupElements(deck.slides[index].elements, ids);
+    }, { label: 'Ungroup objects' });
+    return true;
   }
 
   /** The current selection, minus ids `deck` no longer has anywhere. */

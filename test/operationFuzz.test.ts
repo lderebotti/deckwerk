@@ -13,6 +13,7 @@ import { EditorCanvas } from '../src/renderer/editor/canvas.js';
 import { EditorStore } from '../src/renderer/editor/store.js';
 import { findRenderDivergences, formatDivergence } from '../src/renderer/editor/renderInvariants.js';
 import { installCanvasDomShims } from './support/canvasHarness.js';
+import { clickUnit, drillInto, groupViolations } from '../src/shared/groups.js';
 import { extraFuzzSeeds } from './support/fuzzSeeds.js';
 
 /**
@@ -381,6 +382,32 @@ function buildOps(store: EditorStore, canvas: EditorCanvas, random: () => number
         }, { label: 'build' });
       },
     },
+    // Groups ride on every other edit: a member deleted, duplicated, pasted,
+    // restacked or re-laid-out must never leave groups that fail to nest.
+    { name: 'group selection', run: () => { store.groupSelection(); } },
+    {
+      // Any two objects, whole groups or not, so nesting is exercised from
+      // partial selections as an agent or a script might make them.
+      name: 'group a random pair',
+      run: () => {
+        const ids = currentIds();
+        if (ids.length < 2) return;
+        store.select([pick(ids), pick(ids)]);
+        store.groupSelection();
+      },
+    },
+    { name: 'ungroup selection', run: () => { store.ungroupSelection(); } },
+    {
+      name: 'click into a group',
+      run: () => {
+        const ids = currentIds();
+        if (!ids.length) return;
+        const hit = pick(ids);
+        const slide = store.get().deck.slides[store.get().slideIndex];
+        const selection = store.get().selection;
+        store.select(drillInto(slide.elements, hit, selection) ?? clickUnit(slide.elements, hit, selection));
+      },
+    },
     { name: 'undo', run: () => store.undo() },
     { name: 'redo', run: () => store.redo() },
     { name: 'refit auto text', run: () => canvas.refitAutoText() },
@@ -437,6 +464,9 @@ function checkInvariants(
       }
     }
   }
+
+  // Groups nest: two members of a group share every group around it.
+  problems.push(...groupViolations(slide.elements));
 
   // 6. The canvas agrees with a fresh render of the same model.
   for (const divergence of findRenderDivergences(slideLayer, slide, (src) => src)) {

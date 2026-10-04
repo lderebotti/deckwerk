@@ -99,6 +99,11 @@ const BaseElement = z.object({
   layoutMasterId: z.string().optional(),
   /** Discussion attached to this element; absent when there is none. */
   comments: z.array(CommentSchema).optional(),
+  /**
+   * The groups this element belongs to, outermost first (shared/groups.ts).
+   * Elements sharing an id form that group; absent when ungrouped.
+   */
+  groupIds: z.array(Id).optional(),
 });
 
 export const MediaEffectSchema = z.discriminatedUnion('type', [

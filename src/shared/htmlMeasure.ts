@@ -188,6 +188,18 @@ export function measureSlides(doc: Document): MeasuredSlide[] {
     try { return [...sheet.cssRules].map((rule) => rule.cssText); } catch { return []; }
   }).join('\n');
   const independent = doc.documentElement.dataset.slideEditorIndependent === 'true';
+  // Groups: `data-group` on an element, or on wrappers around it (outermost
+  // first), is the element's group path. The wrappers themselves dissolve,
+  // so the path is stamped on every element it covers before the walk.
+  for (const node of doc.querySelectorAll<HTMLElement>('section [data-group], section [data-group] *')) {
+    const path: string[] = [];
+    for (let at: HTMLElement | null = node; at && at.tagName !== 'SECTION'; at = at.parentElement) {
+      if (at.dataset.group?.trim()) path.unshift(...at.dataset.group.trim().split(/\s+/));
+    }
+    if (path.length > 0) node.dataset.groupPath = path.join(' ');
+  }
+  const groupOf = (node: HTMLElement): Record<string, string> =>
+    (node.dataset.groupPath ? { groupPath: node.dataset.groupPath } : {});
   // jsdom accepts the pseudo-element overload but emits a noisy
   // "not implemented" diagnostic for every call. Real imports are measured
   // in Chromium, where the overload is available; unit tests simply skip this
@@ -1346,6 +1358,7 @@ export function measureSlides(doc: Document): MeasuredSlide[] {
       return {
         ...common,
         dataset: {
+          ...groupOf(owner),
           element: 'shape',
           shape: ellipse ? 'ellipse' : 'rect',
           ...(fill ? { fill } : {}),
@@ -1376,7 +1389,7 @@ export function measureSlides(doc: Document): MeasuredSlide[] {
     }
     return {
       ...common,
-      dataset: {},
+      dataset: groupOf(owner),
       style: kept,
       html: text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
     };

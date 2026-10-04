@@ -1165,6 +1165,14 @@ body.panel-resizing iframe { pointer-events: none; }
   outline-color: #34d399;
 }
 
+/* A group held whole: members get a faint dashed outline, the group's own
+   frame carries the handles. */
+.sel-box.group-member {
+  outline-width: calc(1px * var(--inv));
+  outline-style: dashed;
+  opacity: 0.7;
+}
+
 .sel-box.masking .handle {
   border-color: #34d399;
 }
@@ -1691,6 +1699,14 @@ input[type="range"] { accent-color: var(--accent); padding: 0; background: trans
   align-self: end;
   justify-content: flex-start;
 }
+
+/* Group / Ungroup side by side when both apply. */
+.group-actions {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0;
+}
+.group-actions .panel-action { margin: 0; }
 
 .mask-action-row {
   display: grid;

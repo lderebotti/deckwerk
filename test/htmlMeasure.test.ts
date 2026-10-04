@@ -258,6 +258,22 @@ describe('the walk', () => {
     expect(slides[1].morphDuration).toBe(1450);
   });
 
+  it('reads groups from data-group on objects and on the wrappers around them', () => {
+    const doc = pageFrame(`
+      <section class="slide" data-slide-id="g">
+        <div data-group="outer">
+          <div data-group="inner"><p>One</p><p>Two</p></div>
+          <p>Three</p>
+        </div>
+        <p data-group="a b">Exported</p>
+        <p>Loose</p>
+      </section>
+    `);
+    measureSlides(doc);
+    const paths = [...doc.querySelectorAll('p')].map((p) => (p as HTMLElement).dataset.groupPath ?? null);
+    expect(paths).toEqual(['outer inner', 'outer inner', 'outer', 'a b', null]);
+  });
+
   it('treats a page with no slide sections as one slide', () => {
     expect(measureSlides(pageFrame('<h1>Just markup</h1>')).length).toBe(1);
   });

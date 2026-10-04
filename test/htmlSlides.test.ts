@@ -414,6 +414,16 @@ describe('measured nodes become deck objects', () => {
   });
 });
 
+describe('groups in authored HTML', () => {
+  it('turns a measured group path into groupIds and writes it back out', () => {
+    const element = elementFromNode(node({ dataset: { groupPath: 'outer inner' } }), 'p-1', 1)!;
+    expect(element.groupIds).toEqual(['outer', 'inner']);
+    expect(slideToHtml({ ...emptyDeck().slides[0], elements: [element] }, emptyDeck().canvas))
+      .toContain('data-group="outer inner"');
+    expect(elementFromNode(node(), 'p-2', 2)).not.toHaveProperty('groupIds');
+  });
+});
+
 describe('deck objects become authored HTML', () => {
   it('records the ordered authoritative scope in the exported document', () => {
     const deck = emptyDeck('Scope');

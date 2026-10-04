@@ -1,4 +1,5 @@
 import { openContextMenu } from './contextMenuPlacement.js';
+import { clickUnit, drillInto, expandToUnits, liveGroups, selectedGroups } from '@shared/groups.js';
 import type { Deck, Slide, SlideElement } from '@shared/deck.js';
 import { type Rect, fitScale, makeId } from '@shared/geometry.js';
 
@@ -547,6 +548,8 @@ const HANDLE_NAMES = Object.keys(HANDLES);
 type MoveOrigin = Rect & { control?: { x: number; y: number } };
 type ResizeOrigin = Rect & {
   rot: number;
+  /** The box of the selected group this element moves with: members scale inside it. */
+  unit?: Rect;
   sourceBox?: Rect | null;
   control?: { x: number; y: number } | null;
 };
@@ -578,6 +581,8 @@ type DragMode =
       originRotation: number;
       lastAngle: number;
       accumulatedAngle: number;
+      /** Turning a group: every member swings about the group's centre. */
+      members?: Map<string, MoveOrigin & { rot: number }>;
     }
   | {
       kind: 'mask-pan';
@@ -746,6 +751,8 @@ export class EditorCanvas {
    * count at one.
    */
   private lastContentClick: { x: number; y: number; time: number } | null = null;
+  /** A click (not a drag) on a selected group selects this, one level further in. */
+  private pendingDrill: string[] | null = null;
   /** A click (not a drag) on an already-selected text box enters editing here. */
   private pendingTextEdit: {
     elementId: string;
@@ -1704,6 +1711,11 @@ export class EditorCanvas {
       }
     }
 
+    // A group held whole is one object: its members are outlined, and its own
+    // frame carries the handles.
+    const framedGroups = this.maskingId ? [] : selectedGroups(elements, selection);
+    const framedMembers = new Set(framedGroups.flatMap((group) => group.members));
+
     for (const el of elements) {
       if (el.layoutMasterId) continue;
       if (!selection.has(el.id)) continue;
@@ -1723,6 +1735,11 @@ export class EditorCanvas {
       if (el.rot && !isLine) box.style.transform = `rotate(${el.rot}deg)`;
       // Counter-scale so outlines and handles stay one visual size at any zoom.
       box.style.setProperty('--inv', String(1 / this.scale));
+      if (framedMembers.has(el.id)) {
+        box.classList.add('group-member');
+        frag.appendChild(box);
+        continue;
+      }
 
       // Lines and arrows get endpoint handles instead of a resize box: what
       // you want to move is where the arrow starts and ends, not its bounding
@@ -1814,6 +1831,26 @@ export class EditorCanvas {
       frag.appendChild(box);
     }
 
+    for (const group of framedGroups) {
+      const bounds = groupBounds(elements, group.members);
+      const box = document.createElement('div');
+      box.className = 'sel-box group-frame';
+      box.dataset.groupId = group.id;
+      box.style.left = `${bounds.x}px`;
+      box.style.top = `${bounds.y}px`;
+      box.style.width = `${bounds.w}px`;
+      box.style.height = `${bounds.h}px`;
+      box.style.setProperty('--inv', String(1 / this.scale));
+      for (const name of HANDLE_NAMES) {
+        const handle = document.createElement('div');
+        handle.className = `handle handle-${name}`;
+        handle.dataset.handle = name;
+        handle.dataset.groupId = group.id;
+        box.appendChild(handle);
+      }
+      frag.appendChild(box);
+    }
+
     for (const g of this.guides) {
       const line = document.createElement('div');
       line.className = `guide guide-${g.axis}`;
@@ -1896,6 +1933,40 @@ export class EditorCanvas {
         overlay: this.overlay,
       };
     }, 'an overlay redraw');
+  }
+
+  /**
+   * Where every selected object starts a resize from. A member of a group
+   * the selection holds whole also records that group's box, so it scales
+   * inside the group instead of about its own edges.
+   */
+  private resizeOrigins(): Map<string, ResizeOrigin> {
+    const slide = this.store.slide;
+    const selection = this.store.get().selection;
+    const units = new Map<string, Rect>();
+    for (const group of slide ? selectedGroups(slide.elements, selection) : []) {
+      const box = groupBounds(slide!.elements, group.members);
+      for (const member of group.members) units.set(member, box);
+    }
+    const origins = new Map<string, ResizeOrigin>();
+    for (const selected of this.store.selectedElements()) {
+      const unit = units.get(selected.id);
+      origins.set(selected.id, {
+        x: selected.x,
+        y: selected.y,
+        w: selected.w,
+        h: selected.h,
+        rot: selected.rot,
+        ...(unit ? { unit } : {}),
+        ...((selected.type === 'image' || selected.type === 'video')
+          ? { sourceBox: selected.sourceBox ? { ...selected.sourceBox } : null }
+          : {}),
+        ...((selected.type === 'shape' && selected.control)
+          ? { control: { ...selected.control } }
+          : {}),
+      });
+    }
+    return origins;
   }
 
   /** Screen point -> canvas point. */
@@ -2059,6 +2130,54 @@ export class EditorCanvas {
       }
     }
 
+    const groupHandle = target.closest<HTMLElement>('.handle[data-group-id]');
+    if (groupHandle?.dataset.groupId && commandModifier(ev)) {
+      const ids = liveGroups(slide.elements).get(groupHandle.dataset.groupId);
+      if (ids) {
+        const bounds = groupBounds(slide.elements, ids);
+        const center = { x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2 };
+        const members = new Map<string, MoveOrigin & { rot: number }>();
+        for (const el of slide.elements.filter((candidate) => ids.includes(candidate.id))) {
+          members.set(el.id, {
+            x: el.x, y: el.y, w: el.w, h: el.h, rot: el.rot,
+            ...((el.type === 'shape' && el.control) ? { control: { ...el.control } } : {}),
+          });
+        }
+        this.store.beginTransaction('Rotate group');
+        this.host.classList.add('is-rotating');
+        this.drag = {
+          kind: 'rotate',
+          elementId: groupHandle.dataset.groupId,
+          startCanvas: point,
+          center,
+          originRotation: 0,
+          lastAngle: Math.atan2(point.y - center.y, point.x - center.x),
+          accumulatedAngle: 0,
+          members,
+        };
+        return;
+      }
+    }
+
+    // A group frame's handle scales the group's members inside its box.
+    const groupResize = target.dataset?.handle && target.dataset.groupId
+      ? liveGroups(slide.elements).get(target.dataset.groupId)
+      : undefined;
+    if (groupResize) {
+      const bounds = groupBounds(slide.elements, groupResize);
+      this.store.beginTransaction('Move or resize objects');
+      this.drag = {
+        kind: 'resize',
+        handle: target.dataset.handle!,
+        startCanvas: point,
+        origin: bounds,
+        origins: this.resizeOrigins(),
+        elementId: target.dataset.groupId!,
+        aspect: bounds.w / bounds.h,
+      };
+      return;
+    }
+
     // Bend handle on a quadratic line or arrow.
     if (target.dataset?.curveControl && target.dataset.elementId) {
       this.store.beginTransaction();
@@ -2122,22 +2241,7 @@ export class EditorCanvas {
               ? { x: 0, y: 0, w: el.w, h: el.h }
               : null;
         }
-        const origins = new Map<string, ResizeOrigin>();
-        for (const selected of this.store.selectedElements()) {
-          origins.set(selected.id, {
-            x: selected.x,
-            y: selected.y,
-            w: selected.w,
-            h: selected.h,
-            rot: selected.rot,
-            ...((selected.type === 'image' || selected.type === 'video')
-              ? { sourceBox: selected.sourceBox ? { ...selected.sourceBox } : null }
-              : {}),
-            ...((selected.type === 'shape' && selected.control)
-              ? { control: { ...selected.control } }
-              : {}),
-          });
-        }
+        const origins = this.resizeOrigins();
         this.drag = {
           kind: 'resize',
           handle,
@@ -2181,15 +2285,24 @@ export class EditorCanvas {
     const hit = this.hitTest(point);
     if (hit) {
       const selection = this.store.get().selection;
+      // A press picks the whole group (or, inside a group being edited, the
+      // object one level in); a click on a selected group drills a level in.
+      const unit = clickUnit(slide.elements, hit.id, selection);
+      const drill = !ev.shiftKey && selection.has(hit.id)
+        ? drillInto(slide.elements, hit.id, selection)
+        : null;
+      // Inside a selected group, a double-click edits the text directly.
       this.pendingTextEdit = !ev.shiftKey
         && selection.has(hit.id)
         && (hit.type === 'text' || hit.type === 'html')
+        && (!drill || secondClick)
         ? { elementId: hit.id, clientX: ev.clientX, clientY: ev.clientY, selectWord: secondClick }
         : null;
+      this.pendingDrill = this.pendingTextEdit ? null : drill;
       if (!selection.has(hit.id)) {
-        this.store.select([hit.id], ev.shiftKey);
+        this.store.select(unit, ev.shiftKey);
       } else if (ev.shiftKey) {
-        this.store.select([hit.id], true);
+        this.store.select(unit, true);
         return;
       }
       const origin = new Map<string, MoveOrigin>();
@@ -2496,7 +2609,9 @@ export class EditorCanvas {
         this.store.updateSelected((el) => {
           const origin = drag.origins.get(el.id);
           if (!origin) return;
-          const resized = resizeByScale(origin, edges, scaleX, scaleY, centered);
+          const resized = origin.unit
+            ? memberOfScaledUnit(origin, origin.unit, resizeByScale({ ...origin.unit, rot: 0 }, edges, scaleX, scaleY, centered))
+            : resizeByScale(origin, edges, scaleX, scaleY, centered);
           el.x = Math.round(resized.x);
           el.y = Math.round(resized.y);
           el.w = Math.max(1, Math.round(resized.w));
@@ -2540,6 +2655,27 @@ export class EditorCanvas {
         // free-rotation gesture.
         if (ev.shiftKey) rotation = Math.round(rotation / 15) * 15;
         rotation = Math.round(rotation * 10) / 10;
+        if (drag.members) {
+          const members = drag.members;
+          const radians = (rotation * Math.PI) / 180;
+          const turn = (p: { x: number; y: number }) => ({
+            x: drag.center.x + (p.x - drag.center.x) * Math.cos(radians) - (p.y - drag.center.y) * Math.sin(radians),
+            y: drag.center.y + (p.x - drag.center.x) * Math.sin(radians) + (p.y - drag.center.y) * Math.cos(radians),
+          });
+          this.store.updateSelected((target) => {
+            const origin = members.get(target.id);
+            if (!origin) return;
+            const centre = turn({ x: origin.x + origin.w / 2, y: origin.y + origin.h / 2 });
+            target.x = Math.round(centre.x - origin.w / 2);
+            target.y = Math.round(centre.y - origin.h / 2);
+            target.rot = Math.round((origin.rot + rotation) * 10) / 10;
+            if (target.type === 'shape' && origin.control) {
+              const control = turn(origin.control);
+              target.control = { x: Math.round(control.x), y: Math.round(control.y) };
+            }
+          });
+          break;
+        }
         this.store.updateSelected((target) => {
           if (target.id === drag.elementId) target.rot = rotation;
         });
@@ -2640,6 +2776,7 @@ export class EditorCanvas {
       return;
     }
     const textEdit = !this.dragStarted ? this.pendingTextEdit : null;
+    const drill = !this.dragStarted ? this.pendingDrill : null;
     if (this.drag.kind === 'marquee' && this.marquee) {
       const slide = this.store.slide;
       if (slide) {
@@ -2648,9 +2785,11 @@ export class EditorCanvas {
           // Locked master copies are not selectable (see selectAllElements).
           .filter((e) => !e.layoutMasterId && intersects(rotatedBounds(e), box))
           .map((e) => e.id);
-        if (hits.length > 0) this.store.select(hits, ev.shiftKey);
+        // Touching any member takes the whole group, as a click does.
+        if (hits.length > 0) this.store.select(expandToUnits(slide.elements, hits), ev.shiftKey);
       }
     }
+    if (drill) this.store.select(drill);
     this.host.releasePointerCapture?.(ev.pointerId);
     this.endDrag();
     if (textEdit) this.beginTextEdit(textEdit.elementId, textEdit, textEdit.selectWord);
@@ -2667,6 +2806,7 @@ export class EditorCanvas {
     this.sizeMatches = [];
     this.marquee = null;
     this.pendingTextEdit = null;
+    this.pendingDrill = null;
 
     // Deliberately *not* a full render. Redrawing the slide layer here would
     // replace the node the pointer went down on, and a browser cannot
@@ -6472,6 +6612,19 @@ function sameStructure(a: Slide, b: Slide, ignoreHtml = false): boolean {
 }
 
 /** Axis-aligned bounds of an element as rendered (rotation about its centre). */
+/** The axis-aligned box around a group's members as drawn. */
+function groupBounds(elements: SlideElement[], members: string[]): Rect {
+  const boxes = elements.filter((element) => members.includes(element.id)).map(rotatedBounds);
+  const x = Math.min(...boxes.map((box) => box.x));
+  const y = Math.min(...boxes.map((box) => box.y));
+  return {
+    x,
+    y,
+    w: Math.max(...boxes.map((box) => box.x + box.w)) - x,
+    h: Math.max(...boxes.map((box) => box.y + box.h)) - y,
+  };
+}
+
 function rotatedBounds(el: SlideElement): Rect {
   if (!el.rot) return { x: el.x, y: el.y, w: el.w, h: el.h };
   const rad = (el.rot * Math.PI) / 180;
@@ -6790,6 +6943,24 @@ function constrainAspect(
  * several separate objects grow or shrink identically without changing the
  * spacing between their anchor edges.
  */
+/**
+ * A group member's box after its group's box went from `unit` to `scaled`:
+ * its centre keeps its place within the group and its size scales with it.
+ * Text keeps its type size, as in PowerPoint; only the box changes.
+ */
+function memberOfScaledUnit(origin: Rect, unit: Rect, scaled: Rect): Rect {
+  const fx = scaled.w / unit.w;
+  const fy = scaled.h / unit.h;
+  const w = origin.w * fx;
+  const h = origin.h * fy;
+  return {
+    x: scaled.x + (origin.x + origin.w / 2 - unit.x) * fx - w / 2,
+    y: scaled.y + (origin.y + origin.h / 2 - unit.y) * fy - h / 2,
+    w,
+    h,
+  };
+}
+
 function resizeByScale(
   origin: ResizeOrigin,
   edges: { left: boolean; right: boolean; top: boolean; bottom: boolean },

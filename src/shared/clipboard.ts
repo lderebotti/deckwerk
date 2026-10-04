@@ -11,6 +11,7 @@ import {
 } from './deck.js';
 import { renameRetiredFields } from './fieldAliases.js';
 import { makeId } from './geometry.js';
+import { remintGroupIds } from './groups.js';
 import type { ImportedAsset } from './ipc.js';
 
 /**
@@ -174,6 +175,8 @@ export function remapElementIds(
     el.id = id;
     el.morphId = null;
   }
+  // A pasted group is a new group; a member pasted alone is no group at all.
+  remintGroupIds(elements, () => makeId('group'));
   for (const entry of timeline) {
     entry.id = makeId('t');
     entry.action.target = remap.get(entry.action.target) ?? entry.action.target;

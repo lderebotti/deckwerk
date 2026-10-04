@@ -1,5 +1,6 @@
 import type { SlideElement } from '@shared/deck.js';
 import { elementFollowsLayout, layoutGeometryFor, realignElementToLayout } from '@shared/layoutMasters.js';
+import { drillOut } from '@shared/groups.js';
 import { EditorCanvas } from './canvas.js';
 import { setCircularMask } from '@shared/mediaMask.js';
 import { mediaNaturalSize } from './mediaNatural.js';
@@ -231,7 +232,7 @@ export function hasNativeCopySelection(selection = window.getSelection()): boole
 }
 
 export function bindEditorKeys(deps: ShellDeps, clipboard: ClipboardActions): void {
-  const { store, canvas, rail, save } = deps;
+  const { store, canvas, rail, save, setStatusMessage } = deps;
   // The contenteditable text surface stops keyboard events before they reach
   // the window. Give it the same shell-aware undo path used below (including
   // collaboration's selective undo implementation).
@@ -346,6 +347,15 @@ export function bindEditorKeys(deps: ShellDeps, clipboard: ClipboardActions): vo
       void save();
       return;
     }
+    if (mod && e.key.toLowerCase() === 'g') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        if (!store.ungroupSelection()) setStatusMessage('Select a group to ungroup.');
+      } else if (!store.groupSelection()) {
+        setStatusMessage('Select two or more objects to group.');
+      }
+      return;
+    }
     if (mod && e.key.toLowerCase() === 'd') {
       e.preventDefault();
       duplicateSelection(store);
@@ -409,9 +419,14 @@ export function bindEditorKeys(deps: ShellDeps, clipboard: ClipboardActions): vo
         store.deleteSelection();
         break;
       }
-      case 'Escape':
-        store.clearSelection();
+      case 'Escape': {
+        // Inside a group, Escape climbs back out to the group first.
+        const slide = store.slide;
+        const outer = slide ? drillOut(slide.elements, store.get().selection) : null;
+        if (outer) store.select(outer);
+        else store.clearSelection();
         break;
+      }
       case 'ArrowLeft':
       case 'ArrowRight':
       case 'ArrowUp':

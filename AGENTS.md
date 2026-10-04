@@ -220,6 +220,10 @@ turns into, not a list of things to opt into.
   owner as the CSS said.
 - **Backgrounds** — a photograph or gradient on a container that dissolves is
   kept as a painted box underneath the words it was behind.
+- **Groups** — `data-group="name"` on a wrapper groups every object inside
+  it, so the editor selects, moves, sizes and turns them as one; wrappers
+  nest. An export writes the group path on each object instead
+  (`data-group="outer inner"`); keep it, or the save ungroups them.
 
 ### What to avoid
 

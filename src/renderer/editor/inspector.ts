@@ -1,4 +1,5 @@
 import type { Deck, MediaEffect, Slide, SlideElement } from '@shared/deck.js';
+import { groupElements, selectedGroups } from '@shared/groups.js';
 import {
   paragraphsToList,
   paragraphsToOrderedList,
@@ -355,7 +356,12 @@ export class Inspector {
       return;
     }
     if (selected.length > 1) {
-      this.host.appendChild(sectionTitle(`${selected.length} elements`));
+      const slide = this.store.slide;
+      const wholeGroups = slide ? selectedGroups(slide.elements, selection) : [];
+      const oneGroup = wholeGroups.length === 1 && wholeGroups[0].members.length === selected.length;
+      this.host.appendChild(sectionTitle(oneGroup ? `group of ${selected.length}` : `${selected.length} elements`));
+      const grouping = this.groupActions(wholeGroups.length > 0);
+      if (grouping) this.host.appendChild(grouping);
       this.host.appendChild(this.alignSection());
       this.host.appendChild(this.geometrySection(selected));
       const first = selected[0];
@@ -391,6 +397,19 @@ export class Inspector {
     this.host.appendChild(this.geometrySection(selected));
     const specific = this.typeSection(el);
     if (specific) this.host.appendChild(specific);
+  }
+
+  /** Group and Ungroup for a multi-selection, offered only where they would do something. */
+  private groupActions(canUngroup: boolean): HTMLElement | null {
+    const slide = this.store.slide;
+    if (!slide) return null;
+    const canGroup = groupElements(structuredClone(slide.elements), new Set(this.store.get().selection), 'probe');
+    if (!canGroup && !canUngroup) return null;
+    const row = document.createElement('div');
+    row.className = 'group-actions';
+    if (canGroup) row.appendChild(button('Group', () => this.store.groupSelection(), 'panel-action'));
+    if (canUngroup) row.appendChild(button('Ungroup', () => this.store.ungroupSelection(), 'panel-action'));
+    return row;
   }
 
   private appendMorph(): void {
