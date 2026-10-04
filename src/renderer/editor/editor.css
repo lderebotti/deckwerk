@@ -848,6 +848,9 @@ body.panel-resizing iframe { pointer-events: none; }
   overflow-wrap: anywhere;
 }
 
+/* `display: flex` below would otherwise outrank the hidden attribute. */
+.field[hidden] { display: none; }
+
 .field {
   display: flex;
   flex-direction: column;

@@ -60,6 +60,7 @@ describe('the footer date in Design', () => {
 
     mode.value = 'fixed';
     mode.dispatchEvent(new Event('change'));
+    expect(row(footer.element, 'Format').hidden).toBe(false);
     const day = row(footer.element, 'Day').querySelector<HTMLInputElement>('input[type="text"]')!;
     expect(day.placeholder).toBe('dd/mm/yyyy');
     expect(row(footer.element, 'Day').hidden).toBe(false);
@@ -92,6 +93,7 @@ describe('the footer date in Design', () => {
 
     mode.value = 'none';
     mode.dispatchEvent(new Event('change'));
+    expect(row(footer.element, 'Format').hidden).toBe(true);
     // Nothing else was on, so the footer is gone altogether.
     expect(store.get().deck.footer).toBeNull();
   });
