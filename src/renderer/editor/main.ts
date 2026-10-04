@@ -39,6 +39,7 @@ import { createThemePanel } from './themePanel.js';
 import {
   barButton,
   barIconButton,
+  formatPainterButton,
   TEXT_ICON,
   bindEditorKeys,
   createClipboardActions,
@@ -468,6 +469,7 @@ function buildToolbar(): void {
     barIconButton('Text', TEXT_ICON, () => addText()),
     createShapeInsertPicker(store),
     createTableInsertPicker(store),
+    formatPainterButton(canvas, store),
   );
 
   const right = document.createElement('div');

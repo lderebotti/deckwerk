@@ -25,6 +25,7 @@ import { Inspector } from '../editor/inspector.js';
 import {
   barButton,
   barIconButton,
+  formatPainterButton,
   TEXT_ICON,
   bindEditorKeys,
   createClipboardActions,
@@ -708,6 +709,7 @@ function buildToolbar(): void {
     barIconButton('Text', TEXT_ICON, () => insertText(store)),
     createShapeInsertPicker(store),
     createTableInsertPicker(store),
+    formatPainterButton(canvas, store),
   );
 
   const right = document.createElement('div');

@@ -135,6 +135,7 @@ body.welcome-mode .toolbar-expanded-file-actions { display: inline-flex; }
 }
 
 .bar-icon { flex: none; color: var(--muted); }
+button.primary .bar-icon { color: currentColor; }
 
 button {
   padding: 5px 11px;
@@ -311,6 +312,9 @@ body.panel-resizing iframe { pointer-events: none; }
 }
 
 .canvas-host.drop-active { box-shadow: inset 0 0 0 3px var(--accent); }
+/* An armed format painter: every object under the pointer takes the paint. */
+.canvas-host.format-painting,
+.canvas-host.format-painting * { cursor: copy !important; }
 
 .canvas-host .stage {
   position: absolute;

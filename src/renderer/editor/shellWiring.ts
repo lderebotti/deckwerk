@@ -231,7 +231,7 @@ export function hasNativeCopySelection(selection = window.getSelection()): boole
 }
 
 export function bindEditorKeys(deps: ShellDeps, clipboard: ClipboardActions): void {
-  const { store, canvas, rail, save } = deps;
+  const { store, canvas, rail, save, setStatusMessage } = deps;
   // The contenteditable text surface stops keyboard events before they reach
   // the window. Give it the same shell-aware undo path used below (including
   // collaboration's selective undo implementation).
@@ -379,6 +379,17 @@ export function bindEditorKeys(deps: ShellDeps, clipboard: ClipboardActions): vo
       else store.selectAllElements();
       return;
     }
+    // PowerPoint's copy and paste formatting, ahead of plain copy and paste.
+    if (mod && e.shiftKey && e.key.toLowerCase() === 'c') {
+      e.preventDefault();
+      if (canvas.copyFormatFromSelection()) setStatusMessage('Copied format.');
+      return;
+    }
+    if (mod && e.shiftKey && e.key.toLowerCase() === 'v') {
+      e.preventDefault();
+      canvas.pasteFormatToSelection();
+      return;
+    }
     if (mod && e.key.toLowerCase() === 'c') {
       if (hasNativeCopySelection()) return;
       // In the Web UI the key is left to Chromium so that its `copy` event
@@ -410,7 +421,9 @@ export function bindEditorKeys(deps: ShellDeps, clipboard: ClipboardActions): vo
         break;
       }
       case 'Escape':
-        store.clearSelection();
+        // Escape puts an armed format painter down before it drops the selection.
+        if (canvas.isFormatPainting()) canvas.stopFormatPainter();
+        else store.clearSelection();
         break;
       case 'ArrowLeft':
       case 'ArrowRight':
@@ -539,6 +552,38 @@ export function barIconButton(label: string, iconSvg: string, onClick: () => voi
   b.innerHTML = `${iconSvg}<span>${label}</span>`;
   b.addEventListener('click', onClick);
   return b;
+}
+
+export const FORMAT_PAINTER_ICON =
+  '<svg class="bar-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">' +
+  '<path d="M3 2.5h8.5v3H3zM11.5 4h1.5v3.5H8V10M7 10h2v4H7z" fill="none" stroke="currentColor" ' +
+  'stroke-width="1.4" stroke-linejoin="round"/></svg>';
+
+/**
+ * The format painter's toolbar button, shared by the desktop and Web shells.
+ * A click arms it for one paint, a double-click keeps it armed (as in
+ * PowerPoint), and a click while armed puts it down. It needs exactly one
+ * selected object to copy from.
+ */
+export function formatPainterButton(canvas: EditorCanvas, store: EditorStore): HTMLButtonElement {
+  const button = barIconButton('Format', FORMAT_PAINTER_ICON, () => {
+    if (canvas.isFormatPainting()) canvas.stopFormatPainter();
+    else canvas.startFormatPainter(false);
+  });
+  button.title = 'Format painter: copy this object\'s formatting to the next object you click.'
+    + ' Double-click to paint several; Esc stops.';
+  // The two clicks of a double-click arm and disarm; the dblclick that follows arms for good.
+  button.addEventListener('dblclick', () => canvas.startFormatPainter(true));
+  const sync = (): void => {
+    const painting = canvas.isFormatPainting();
+    button.disabled = !painting && store.selectedElements().length !== 1;
+    button.classList.toggle('primary', painting);
+    button.setAttribute('aria-pressed', String(painting));
+  };
+  canvas.onFormatPainterChange = sync;
+  store.subscribe(sync);
+  sync();
+  return button;
 }
 
 export const TEXT_ICON =

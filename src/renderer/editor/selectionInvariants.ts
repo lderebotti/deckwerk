@@ -35,6 +35,8 @@ export interface SelectionSnapshot {
   slideSelection: ReadonlySet<string>;
   editingId: string | null;
   maskingId: string | null;
+  /** Whether the format painter is armed. */
+  formatPainting: boolean;
   tableSelection: TableSelection | null;
   slideLayer: HTMLElement;
   overlay: HTMLElement;
@@ -59,6 +61,9 @@ export function findSelectionViolations(snap: SelectionSnapshot): string[] {
   // --- modes are exclusive ---------------------------------------------------
   if (editingId !== null && maskingId !== null) {
     problems.push(`editing ${editingId} while ${maskingId} is still in crop mode`);
+  }
+  if (snap.formatPainting && (editingId !== null || maskingId !== null)) {
+    problems.push(`format painter armed while ${editingId !== null ? `editing ${editingId}` : `cropping ${maskingId}`}`);
   }
   if (maskingId !== null && !ids.has(maskingId)) {
     problems.push(`cropping ${maskingId}, which is not on the current slide`);

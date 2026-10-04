@@ -1,4 +1,5 @@
 import { openContextMenu } from './contextMenuPlacement.js';
+import { applyFormat, copyFormat, type ElementFormat } from '@shared/formatPainter.js';
 import type { Deck, Slide, SlideElement } from '@shared/deck.js';
 import { type Rect, fitScale, makeId } from '@shared/geometry.js';
 
@@ -613,6 +614,17 @@ export class EditorCanvas {
   /** Height of chrome covering the bottom of the host; see setBottomInset. */
   private bottomInset = 0;
   private drag: DragMode = { kind: 'none' };
+  /**
+   * The armed format painter: the next click on an object paints `format` on
+   * it instead of selecting it. Sticky (a double-click on the button) stays
+   * armed until Escape or the button. Exclusive with text editing and crop
+   * mode, which selectionInvariants asserts.
+   */
+  private painter: { format: ElementFormat; sticky: boolean } | null = null;
+  /** The last format copied (Cmd/Ctrl+Shift+C or arming the painter), for Cmd/Ctrl+Shift+V. */
+  private copiedFormat: ElementFormat | null = null;
+  /** Called whenever the painter arms or disarms, so toolbars can show it. */
+  onFormatPainterChange: (() => void) | null = null;
   /**
    * Whether the pointer has moved far enough to count as a drag.
    *
@@ -1891,6 +1903,7 @@ export class EditorCanvas {
         slideSelection: state.slideSelection,
         editingId: this.editingId,
         maskingId: this.maskingId,
+        formatPainting: this.painter !== null,
         tableSelection: this.tableSelection,
         slideLayer: this.slideLayer,
         overlay: this.overlay,
@@ -2003,6 +2016,12 @@ export class EditorCanvas {
       // End the session through its own finish so listeners come down too.
       if (this.finishTextEdit) this.finishTextEdit(true);
       else this.commitTextEdit();
+    }
+    if (this.painter) {
+      const hit = this.hitTest(this.toCanvas(ev));
+      if (hit) this.paintFormat([hit.id], this.painter.format);
+      if (!hit || !this.painter.sticky) this.stopFormatPainter();
+      return;
     }
     const secondClick = this.registerContentClick(ev);
     const point = this.toCanvas(ev);
@@ -2975,6 +2994,7 @@ export class EditorCanvas {
     // pending Cmd+B/Cmd+I style run insert its character twice ("not" arriving
     // as "nnoott"), because that path owns the insertion itself.
     if (this.editingId) this.finishTextEdit?.(true);
+    this.stopFormatPainter();
 
     const slide = this.store.slide;
     const el = slide?.elements.find((e) => e.id === elementId);
@@ -6042,6 +6062,60 @@ export class EditorCanvas {
    * handle drag uses the full element box as its implicit source box, making
    * the entire crop one undoable action that restores `sourceBox: null`.
    */
+  isFormatPainting(): boolean {
+    return this.painter !== null;
+  }
+
+  isFormatPainterSticky(): boolean {
+    return this.painter?.sticky ?? false;
+  }
+
+  /** Arm the painter with the one selected object's format; false when there is no single source. */
+  startFormatPainter(sticky: boolean): boolean {
+    if (!this.copyFormatFromSelection()) return false;
+    if (this.editingId) {
+      if (this.finishTextEdit) this.finishTextEdit(true);
+      else this.commitTextEdit();
+    }
+    if (this.maskingId) this.toggleMaskMode(null);
+    this.painter = { format: this.copiedFormat!, sticky };
+    this.host.classList.add('format-painting');
+    this.onFormatPainterChange?.();
+    return true;
+  }
+
+  stopFormatPainter(): void {
+    if (!this.painter) return;
+    this.painter = null;
+    this.host.classList.remove('format-painting');
+    this.onFormatPainterChange?.();
+  }
+
+  /** Remember the one selected object's format; false when there is no single source. */
+  copyFormatFromSelection(): boolean {
+    const selected = this.store.selectedElements();
+    if (selected.length !== 1) return false;
+    this.copiedFormat = copyFormat(selected[0]);
+    return true;
+  }
+
+  /** Paint the last copied format on every selected object; false when there is none to paint. */
+  pasteFormatToSelection(): boolean {
+    const ids = this.store.selectedElements().map((element) => element.id);
+    if (!this.copiedFormat || ids.length === 0) return false;
+    this.paintFormat(ids, this.copiedFormat);
+    return true;
+  }
+
+  /** One undoable step; the painted objects end up selected. Layout copies are read-only. */
+  private paintFormat(ids: string[], format: ElementFormat): void {
+    const slide = this.store.slide;
+    const targets = ids.filter((id) => !slide?.elements.find((element) => element.id === id)?.layoutMasterId);
+    if (targets.length === 0) return;
+    this.store.select(targets);
+    this.store.updateSelected((element) => applyFormat(element, format), { label: 'Paint format' });
+  }
+
   toggleMaskMode(elementId: string | null): void {
     if (elementId === null || this.maskingId === elementId) {
       this.maskingId = null;
@@ -6053,6 +6127,7 @@ export class EditorCanvas {
     const el = this.store.slide?.elements.find((e) => e.id === elementId);
     if (!el || (el.type !== 'image' && el.type !== 'video')) return;
 
+    this.stopFormatPainter();
     this.maskingId = elementId;
     this.store.select([elementId]);
     this.onMaskModeChange?.(elementId);

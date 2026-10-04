@@ -381,6 +381,21 @@ function buildOps(store: EditorStore, canvas: EditorCanvas, random: () => number
         }, { label: 'build' });
       },
     },
+    // The format painter rewrites another object's formatting wholesale --
+    // classes, inline style, text runs -- so it meets every other edit here.
+    { name: 'arm format painter', run: () => { canvas.startFormatPainter(random() < 0.5); } },
+    { name: 'put format painter down', run: () => canvas.stopFormatPainter() },
+    {
+      name: 'copy and paste format',
+      run: () => {
+        const ids = currentIds();
+        if (ids.length < 2) return;
+        store.select([pick(ids)]);
+        canvas.copyFormatFromSelection();
+        store.select([pick(ids), pick(ids)]);
+        canvas.pasteFormatToSelection();
+      },
+    },
     { name: 'undo', run: () => store.undo() },
     { name: 'redo', run: () => store.redo() },
     { name: 'refit auto text', run: () => canvas.refitAutoText() },
